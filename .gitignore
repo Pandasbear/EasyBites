@@ -1,0 +1,68 @@
+# ---> .NET / ASP.NET Core
+# Use 'dotnet new gitignore' to create this file automatically.
+
+# Ignore build outputs
+bin/
+obj/
+artifacts/
+
+# Rider / VSCode / VS
+.idea/
+.vscode/
+*.sw?  # swap files
+
+# User‐specific
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Auto-generated VS files
+.vs/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# NuGet packages (restore at build time)
+**/packages/*
+!**/packages/build/
+
+# ASP.NET artifacts
+wwwroot/*.map
+ScaffoldingReadMe.txt
+
+# Test & coverage
+TestResults/
+*.coverage*
+coverage*.json
+coverage*.xml
+
+# JetBrains Rider & ReSharper
+_ReSharper*/
+*.[Rr]e[Ss]harper
+
+# NCrunch
+_NCrunch_*
+*.crunch*.local.xml
+
+# BenchmarkDotNet
+BenchmarkDotNet.Artifacts/
+
+# Secrets & environment
+appsettings.Development.json
+.env
+.env.*
+
+# Local history / backups
+.localhistory/
+.history/
+
+# Ignore publish output
+publish/
+
+# Uncomment to ignore node packages if added
+# node_modules/ 

@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - EasyBites</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/admin.css">
+</head>
+<body>
+    <header class="admin-header">
+        <nav class="admin-navbar">
+            <div class="nav-container">
+                <div class="nav-brand">
+                    <h1>🍽️ EasyBites Admin</h1>
+                </div>
+                <div class="admin-user">
+                    <span>Welcome, Admin</span>
+                    <a href="admin-login.html" class="logout-btn">Logout</a>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <div class="admin-layout">
+        <aside class="admin-sidebar">
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="admin-dashboard.html" class="nav-item active">📊 Dashboard</a></li>
+                    <li><a href="admin-recipes.html" class="nav-item">🍳 Recipe Management</a></li>
+                    <li><a href="admin-users.html" class="nav-item">👥 User Management</a></li>
+                    <li><a href="admin-feedback.html" class="nav-item">💬 Feedback</a></li>
+                    <li><a href="admin-categories.html" class="nav-item">📂 Categories</a></li>
+                    <li><a href="admin-reports.html" class="nav-item">📈 Reports</a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <main class="admin-main">
+            <div class="admin-content">
+                <div class="page-header">
+                    <h1>Dashboard Overview</h1>
+                    <p>Welcome to the EasyBites admin panel</p>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">👥</div>
+                        <div class="stat-info">
+                            <h3>Total Users</h3>
+                            <div class="stat-number">1,247</div>
+                            <div class="stat-change positive">+12% this month</div>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon">🍳</div>
+                        <div class="stat-info">
+                            <h3>Total Recipes</h3>
+                            <div class="stat-number">856</div>
+                            <div class="stat-change positive">+8% this month</div>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon">⏳</div>
+                        <div class="stat-info">
+                            <h3>Pending Reviews</h3>
+                            <div class="stat-number">23</div>
+                            <div class="stat-change neutral">Needs attention</div>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon">⭐</div>
+                        <div class="stat-info">
+                            <h3>Avg Rating</h3>
+                            <div class="stat-number">4.6</div>
+                            <div class="stat-change positive">+0.2 this month</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-grid">
+                    <div class="dashboard-card">
+                        <h2>Recent Activity</h2>
+                        <div class="activity-list">
+                            <div class="activity-item">
+                                <div class="activity-icon">🍳</div>
+                                <div class="activity-content">
+                                    <p><strong>Sarah Johnson</strong> submitted a new recipe</p>
+                                    <span class="activity-time">2 hours ago</span>
+                                </div>
+                            </div>
+                            <div class="activity-item">
+                                <div class="activity-icon">👤</div>
+                                <div class="activity-content">
+                                    <p><strong>Mike Chen</strong> registered as a new user</p>
+                                    <span class="activity-time">4 hours ago</span>
+                                </div>
+                            </div>
+                            <div class="activity-item">
+                                <div class="activity-icon">⭐</div>
+                                <div class="activity-content">
+                                    <p><strong>Emma Davis</strong> left a 5-star review</p>
+                                    <span class="activity-time">6 hours ago</span>
+                                </div>
+                            </div>
+                            <div class="activity-item">
+                                <div class="activity-icon">🚫</div>
+                                <div class="activity-content">
+                                    <p>Recipe "Spicy Noodles" was flagged for review</p>
+                                    <span class="activity-time">8 hours ago</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-card">
+                        <h2>Pending Actions</h2>
+                        <div class="pending-actions">
+                            <div class="action-item">
+                                <div class="action-info">
+                                    <h4>Recipe Approvals</h4>
+                                    <p>23 recipes waiting for approval</p>
+                                </div>
+                                <a href="admin-recipes.html" class="btn btn-primary btn-sm">Review</a>
+                            </div>
+                            <div class="action-item">
+                                <div class="action-info">
+                                    <h4>User Reports</h4>
+                                    <p>5 user accounts flagged</p>
+                                </div>
+                                <a href="admin-users.html" class="btn btn-warning btn-sm">Check</a>
+                            </div>
+                            <div class="action-item">
+                                <div class="action-info">
+                                    <h4>Feedback Review</h4>
+                                    <p>12 feedback messages unread</p>
+                                </div>
+                                <a href="admin-feedback.html" class="btn btn-info btn-sm">View</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-card">
+                        <h2>Popular Categories</h2>
+                        <div class="category-stats">
+                            <div class="category-item">
+                                <span class="category-name">Dinner</span>
+                                <div class="category-bar">
+                                    <div class="category-fill" style="width: 85%"></div>
+                                </div>
+                                <span class="category-count">245</span>
+                            </div>
+                            <div class="category-item">
+                                <span class="category-name">Breakfast</span>
+                                <div class="category-bar">
+                                    <div class="category-fill" style="width: 70%"></div>
+                                </div>
+                                <span class="category-count">198</span>
+                            </div>
+                            <div class="category-item">
+                                <span class="category-name">Desserts</span>
+                                <div class="category-bar">
+                                    <div class="category-fill" style="width: 60%"></div>
+                                </div>
+                                <span class="category-count">156</span>
+                            </div>
+                            <div class="category-item">
+                                <span class="category-name">Lunch</span>
+                                <div class="category-bar">
+                                    <div class="category-fill" style="width: 55%"></div>
+                                </div>
+                                <span class="category-count">134</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-card">
+                        <h2>System Status</h2>
+                        <div class="system-status">
+                            <div class="status-item">
+                                <div class="status-indicator online"></div>
+                                <span>Database Connection</span>
+                                <span class="status-text">Online</span>
+                            </div>
+                            <div class="status-item">
+                                <div class="status-indicator online"></div>
+                                <span>File Upload Service</span>
+                                <span class="status-text">Online</span>
+                            </div>
+                            <div class="status-item">
+                                <div class="status-indicator warning"></div>
+                                <span>Email Service</span>
+                                <span class="status-text">Slow</span>
+                            </div>
+                            <div class="status-item">
+                                <div class="status-indicator online"></div>
+                                <span>Search Index</span>
+                                <span class="status-text">Online</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="scripts/main.js"></script>
+    <script src="scripts/admin.js"></script>
+</body>
+</html>

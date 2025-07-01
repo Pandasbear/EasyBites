@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Share Your Recipe - EasyBites</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/submit-recipe.css">
+</head>
+<body>
+    <header class="main-header">
+        <nav class="navbar">
+            <div class="nav-container">
+                <div class="nav-brand">
+                    <h1><a href="index.html">🍽️ EasyBites</a></h1>
+                </div>
+                <ul class="nav-menu">
+                    <li><a href="index.html" class="nav-link">Home</a></li>
+                    <li><a href="recipes.html" class="nav-link">Browse Recipes</a></li>
+                    <li><a href="submit-recipe.html" class="nav-link active">Share Recipe</a></li>
+                    <li><a href="login.html" class="nav-link">Login</a></li>
+                    <li><a href="register.html" class="nav-link btn-primary">Sign Up</a></li>
+                </ul>
+            </div>
+        </nav>
+    </header>
+
+    <main class="submit-recipe-main">
+        <div class="container">
+            <div class="page-header">
+                <h1>Share Your Recipe</h1>
+                <p>Help others discover amazing dishes by sharing your favorite recipes!</p>
+            </div>
+
+            <form id="recipeForm" class="recipe-form" novalidate>
+                <div class="form-section">
+                    <h2>Basic Information</h2>
+                    
+                    <div class="form-group">
+                        <label for="recipeName">Recipe Name *</label>
+                        <input type="text" id="recipeName" name="recipeName" required>
+                        <span class="error-message" id="recipeNameError"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="recipeDescription">Description *</label>
+                        <textarea id="recipeDescription" name="recipeDescription" rows="3" placeholder="Tell us about your recipe..." required></textarea>
+                        <span class="error-message" id="recipeDescriptionError"></span>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="category">Category *</label>
+                            <select id="category" name="category" required>
+                                <option value="">Select Category</option>
+                                <option value="breakfast">Breakfast</option>
+                                <option value="lunch">Lunch</option>
+                                <option value="dinner">Dinner</option>
+                                <option value="snacks">Snacks</option>
+                                <option value="desserts">Desserts</option>
+                                <option value="beverages">Beverages</option>
+                            </select>
+                            <span class="error-message" id="categoryError"></span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="difficulty">Difficulty Level *</label>
+                            <select id="difficulty" name="difficulty" required>
+                                <option value="">Select Difficulty</option>
+                                <option value="easy">Easy</option>
+                                <option value="medium">Medium</option>
+                                <option value="hard">Hard</option>
+                            </select>
+                            <span class="error-message" id="difficultyError"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="prepTime">Prep Time (minutes) *</label>
+                            <input type="number" id="prepTime" name="prepTime" min="1" required>
+                            <span class="error-message" id="prepTimeError"></span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="cookTime">Cook Time (minutes) *</label>
+                            <input type="number" id="cookTime" name="cookTime" min="1" required>
+                            <span class="error-message" id="cookTimeError"></span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="servings">Servings *</label>
+                            <input type="number" id="servings" name="servings" min="1" required>
+                            <span class="error-message" id="servingsError"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="recipeImage">Recipe Image</label>
+                        <div class="file-upload">
+                            <input type="file" id="recipeImage" name="recipeImage" accept="image/*">
+                            <label for="recipeImage" class="file-upload-label">
+                                <span class="upload-icon">📷</span>
+                                <span class="upload-text">Choose Image</span>
+                            </label>
+                        </div>
+                        <small class="form-help">Maximum file size: 5MB. Supported formats: JPG, PNG, GIF</small>
+                        <span class="error-message" id="recipeImageError"></span>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h2>Ingredients</h2>
+                    <p class="section-description">List all ingredients needed for your recipe</p>
+                    
+                    <div id="ingredientsList" class="ingredients-list">
+                        <div class="ingredient-item">
+                            <input type="text" placeholder="e.g., 2 cups all-purpose flour" name="ingredients[]" required>
+                            <button type="button" class="remove-ingredient" title="Remove ingredient">×</button>
+                        </div>
+                    </div>
+                    
+                    <button type="button" id="addIngredient" class="btn btn-outline">+ Add Ingredient</button>
+                    <span class="error-message" id="ingredientsError"></span>
+                </div>
+
+                <div class="form-section">
+                    <h2>Instructions</h2>
+                    <p class="section-description">Provide step-by-step cooking instructions</p>
+                    
+                    <div id="instructionsList" class="instructions-list">
+                        <div class="instruction-item">
+                            <div class="step-number">1</div>
+                            <textarea placeholder="Describe the first step..." name="instructions[]" rows="2" required></textarea>
+                            <button type="button" class="remove-instruction" title="Remove step">×</button>
+                        </div>
+                    </div>
+                    
+                    <button type="button" id="addInstruction" class="btn btn-outline">+ Add Step</button>
+                    <span class="error-message" id="instructionsError"></span>
+                </div>
+
+                <div class="form-section">
+                    <h2>Additional Information (Optional)</h2>
+                    
+                    <div class="form-group">
+                        <label for="tips">Chef's Tips</label>
+                        <textarea id="tips" name="tips" rows="3" placeholder="Share any helpful tips or variations..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="nutritionInfo">Nutrition Information</label>
+                        <textarea id="nutritionInfo" name="nutritionInfo" rows="2" placeholder="Calories per serving, dietary information, etc."></textarea>
+                    </div>
+
+                    <div class="form-group checkbox-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="vegetarian" name="dietaryOptions[]" value="vegetarian">
+                            <span class="checkmark"></span>
+                            Vegetarian
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="vegan" name="dietaryOptions[]" value="vegan">
+                            <span class="checkmark"></span>
+                            Vegan
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="glutenFree" name="dietaryOptions[]" value="gluten-free">
+                            <span class="checkmark"></span>
+                            Gluten-Free
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="dairyFree" name="dietaryOptions[]" value="dairy-free">
+                            <span class="checkmark"></span>
+                            Dairy-Free
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-outline">Save as Draft</button>
+                    <button type="submit" class="btn btn-primary">Submit Recipe</button>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <footer class="main-footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>EasyBites</h3>
+                    <p>Making cooking accessible and enjoyable for everyone.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="scripts/main.js"></script>
+    <script src="scripts/submit-recipe.js"></script>
+</body>
+</html>
