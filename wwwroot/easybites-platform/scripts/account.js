@@ -35,6 +35,40 @@
           EasyBites.toast(`Update failed: ${err.message}`);
         }
       });
+
+      // Modal triggers
+      const btnChangePassword = document.getElementById('btnChangePassword');
+      const btnDeleteAccount = document.getElementById('btnDeleteAccount');
+      const passwordModal = document.getElementById('passwordModal');
+      const deleteModal = document.getElementById('deleteModal');
+
+      function openModal(modal) {
+        modal?.classList.remove('hidden');
+      }
+      function closeModal(modal) {
+        modal?.classList.add('hidden');
+      }
+
+      btnChangePassword?.addEventListener('click', () => openModal(passwordModal));
+      btnDeleteAccount?.addEventListener('click', () => openModal(deleteModal));
+
+      // Close buttons
+      document.querySelectorAll('.close-modal').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const id = btn.getAttribute('data-close');
+          const m = document.getElementById(id);
+          closeModal(m);
+        });
+      });
+
+      // Close modal when clicking outside content
+      document.querySelectorAll('.modal').forEach(modalEl => {
+        modalEl.addEventListener('click', (e) => {
+          if (e.target === modalEl) {
+            closeModal(modalEl);
+          }
+        });
+      });
     }
 
     // Password change
@@ -55,6 +89,9 @@
           });
           EasyBites.toast('Password updated');
           passwordForm.reset();
+          // Close modal on success
+          const passwordModal = document.getElementById('passwordModal');
+          passwordModal && passwordModal.classList.add('hidden');
         } catch (err) {
           EasyBites.toast(`Password update failed: ${err.message}`);
         }
