@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Account - EasyBites</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/account.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="main-header">
+        <nav class="navbar">
+            <div class="nav-container">
+                <div class="nav-brand">
+                    <h1><a href="index.html">🍽️ EasyBites</a></h1>
+                </div>
+                <ul class="nav-menu">
+                    <li><a href="index.html" class="nav-link">Home</a></li>
+                    <li><a href="recipes.html" class="nav-link">Browse Recipes</a></li>
+                    <li><a href="submit-recipe.html" class="nav-link">Share Recipe</a></li>
+                    <li><a href="account.html" class="nav-link active">View Account</a></li>
+                    <li><a href="register.html" class="nav-link btn-primary">Sign Out</a></li>
+                </ul>
+                <div class="hamburger">
+                    <span></span><span></span><span></span>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main -->
+    <main class="account-main">
+        <div class="container">
+            <h1 class="mb-3">My Account</h1>
+
+            <!-- Profile Details -->
+            <section class="account-section">
+                <h2>Profile Details</h2>
+                <form id="profileForm" class="account-form" novalidate>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="firstName">First Name *</label>
+                            <input type="text" id="firstName" name="firstName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="lastName">Last Name *</label>
+                            <input type="text" id="lastName" name="lastName" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="username">Username *</label>
+                            <input type="text" id="username" name="username" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="cookingLevel">Cooking Level</label>
+                            <select id="cookingLevel" name="cookingLevel">
+                                <option value="Beginner">Beginner</option>
+                                <option value="Intermediate">Intermediate</option>
+                                <option value="Advanced">Advanced</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="favoriteCuisine">Favorite Cuisine</label>
+                            <input type="text" id="favoriteCuisine" name="favoriteCuisine">
+                        </div>
+                        <div class="form-group">
+                            <label for="location">Location</label>
+                            <input type="text" id="location" name="location">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="bio">Bio</label>
+                        <textarea id="bio" name="bio" rows="3"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </form>
+            </section>
+
+            <!-- Password -->
+            <section class="account-section">
+                <h2>Change Password</h2>
+                <form id="passwordForm" class="account-form" novalidate>
+                    <div class="form-group">
+                        <label for="currentPassword">Current Password *</label>
+                        <input type="password" id="currentPassword" name="currentPassword" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="newPassword">New Password *</label>
+                        <input type="password" id="newPassword" name="newPassword" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="confirmPassword">Confirm New Password *</label>
+                        <input type="password" id="confirmPassword" name="confirmPassword" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Update Password</button>
+                </form>
+            </section>
+
+            <!-- Danger Zone -->
+            <section class="account-section danger-zone">
+                <h2>Delete Account</h2>
+                <p class="mb-1">Once you delete your account, there is no going back.</p>
+                <form id="deleteForm" class="account-form" novalidate>
+                    <div class="form-group">
+                        <label for="deletePassword">Confirm Password *</label>
+                        <input type="password" id="deletePassword" name="deletePassword" required>
+                    </div>
+                    <button type="submit" class="btn btn-warning">Delete My Account</button>
+                </form>
+            </section>
+
+            <!-- User Recipes -->
+            <section class="account-section">
+                <h2>My Recipes</h2>
+                <div id="myRecipesGrid" class="recipes-grid"></div>
+            </section>
+
+            <!-- Saved Recipes -->
+            <section class="account-section">
+                <h2>Saved Recipes</h2>
+                <div id="savedRecipesGrid" class="recipes-grid"></div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="main-footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>EasyBites</h3>
+                    <p>Making cooking accessible and enjoyable for everyone.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="scripts/main.js"></script>
+    <script src="scripts/account.js"></script>
+</body>
+</html> 

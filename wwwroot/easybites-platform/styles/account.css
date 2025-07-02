@@ -1,0 +1,33 @@
+/* Account Page Styles */
+.account-main {
+  padding: 2rem 0;
+  min-height: calc(100vh - 200px);
+}
+
+.account-section {
+  background: white;
+  padding: 2rem 2.5rem;
+  border-radius: 12px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+  margin-bottom: 2rem;
+}
+
+.account-section h2 {
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  color: #2c3e50;
+}
+
+.account-form .form-group:not(:last-child) {
+  margin-bottom: 1.25rem;
+}
+
+.danger-zone {
+  border-left: 4px solid #e74c3c;
+}
+
+@media (max-width: 768px) {
+  .account-section {
+    padding: 1.5rem;
+  }
+} 

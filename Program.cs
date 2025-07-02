@@ -13,15 +13,32 @@ builder.Services.AddSingleton(provider =>
 {
     var url = supaSection["Url"] ?? string.Empty;
     var anonKey = supaSection["AnonKey"] ?? string.Empty;
+    var serviceRoleKey = supaSection["JwtSecret"] ?? anonKey;
+    
+    // Ensure URL is in the correct format
+    if (!url.StartsWith("https://") && !url.StartsWith("http://"))
+    {
+        url = $"https://{url}";
+    }
+    
+    Console.WriteLine($"Initializing Supabase client with URL: {url}");
     var options = new SupabaseOptions { AutoConnectRealtime = true };
-    return new Client(url, anonKey, options);
+    
+    // Use service role key for better permissions when available
+    return new Client(url, serviceRoleKey, options);
 });
 
 // Optional: JWT bearer authentication for Supabase Auth tokens if JwtSecret provided
 var jwtSecret = supaSection["JwtSecret"];
 if (!string.IsNullOrWhiteSpace(jwtSecret))
 {
-    var issuer = $"{supaSection["Url"]}/auth/v1";
+    var url = supaSection["Url"] ?? string.Empty;
+    if (!url.StartsWith("https://") && !url.StartsWith("http://"))
+    {
+        url = $"https://{url}";
+    }
+    
+    var issuer = $"{url}/auth/v1";
     var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret));
 
     builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

@@ -3,9 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fluffy Pancakes - EasyBites</title>
+    <title>Recipe Detail - EasyBites</title>
     <link rel="stylesheet" href="styles/main.css">
     <link rel="stylesheet" href="styles/recipe-detail.css">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
 </head>
 <body>
     <header class="main-header">
@@ -16,222 +18,127 @@
                 </div>
                 <ul class="nav-menu">
                     <li><a href="index.html" class="nav-link">Home</a></li>
-                    <li><a href="recipes.html" class="nav-link">Browse Recipes</a></li>
+                    <li><a href="recipes.html" class="nav-link active">Browse Recipes</a></li>
                     <li><a href="submit-recipe.html" class="nav-link">Share Recipe</a></li>
                     <li><a href="login.html" class="nav-link">Login</a></li>
                     <li><a href="register.html" class="nav-link btn-primary">Sign Up</a></li>
                 </ul>
+                <div class="hamburger">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
             </div>
         </nav>
     </header>
 
-    <main class="recipe-detail-main">
-        <div class="container">
-            <nav class="breadcrumb">
-                <a href="index.html">Home</a> > 
-                <a href="recipes.html">Recipes</a> > 
-                <span>Fluffy Pancakes</span>
-            </nav>
-
-            <article class="recipe-detail">
-                <header class="recipe-header">
-                    <div class="recipe-image">
-                        <img src="/placeholder.svg?height=400&width=600" alt="Fluffy Pancakes">
-                        <button class="save-recipe-btn" title="Save to favorites">❤️</button>
-                    </div>
-                    <div class="recipe-info">
-                        <h1>Fluffy Pancakes</h1>
-                        <p class="recipe-description">Perfect weekend breakfast that's quick and easy to make. These pancakes are light, fluffy, and absolutely delicious!</p>
-                        
-                        <div class="recipe-meta">
-                            <div class="meta-item">
-                                <span class="meta-label">⏱️ Prep Time:</span>
-                                <span class="meta-value">10 minutes</span>
-                            </div>
-                            <div class="meta-item">
-                                <span class="meta-label">🍳 Cook Time:</span>
-                                <span class="meta-value">15 minutes</span>
-                            </div>
-                            <div class="meta-item">
-                                <span class="meta-label">👥 Servings:</span>
-                                <span class="meta-value">4 people</span>
-                            </div>
-                            <div class="meta-item">
-                                <span class="meta-label">📊 Difficulty:</span>
-                                <span class="meta-value difficulty-easy">🟢 Easy</span>
-                            </div>
-                        </div>
-
-                        <div class="recipe-author">
-                            <img src="/placeholder.svg?height=50&width=50" alt="Sarah Johnson" class="author-avatar">
-                            <div class="author-info">
-                                <h3>Sarah Johnson</h3>
-                                <p>Home cook & food blogger</p>
-                                <div class="recipe-rating">
-                                    <span class="stars">⭐⭐⭐⭐⭐</span>
-                                    <span class="rating-count">(24 reviews)</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </header>
-
-                <div class="recipe-content">
-                    <section class="ingredients-section">
-                        <h2>Ingredients</h2>
-                        <ul class="ingredients-list">
-                            <li>
-                                <input type="checkbox" id="ingredient1">
-                                <label for="ingredient1">2 cups all-purpose flour</label>
-                            </li>
-                            <li>
-                                <input type="checkbox" id="ingredient2">
-                                <label for="ingredient2">2 tablespoons sugar</label>
-                            </li>
-                            <li>
-                                <input type="checkbox" id="ingredient3">
-                                <label for="ingredient3">2 teaspoons baking powder</label>
-                            </li>
-                            <li>
-                                <input type="checkbox" id="ingredient4">
-                                <label for="ingredient4">1 teaspoon salt</label>
-                            </li>
-                            <li>
-                                <input type="checkbox" id="ingredient5">
-                                <label for="ingredient5">2 large eggs</label>
-                            </li>
-                            <li>
-                                <input type="checkbox" id="ingredient6">
-                                <label for="ingredient6">1¾ cups milk</label>
-                            </li>
-                            <li>
-                                <input type="checkbox" id="ingredient7">
-                                <label for="ingredient7">¼ cup melted butter</label>
-                            </li>
-                            <li>
-                                <input type="checkbox" id="ingredient8">
-                                <label for="ingredient8">1 teaspoon vanilla extract</label>
-                            </li>
-                        </ul>
-                    </section>
-
-                    <section class="instructions-section">
-                        <h2>Instructions</h2>
-                        <ol class="instructions-list">
-                            <li>
-                                <div class="step-number">1</div>
-                                <div class="step-content">
-                                    <p>In a large bowl, whisk together flour, sugar, baking powder, and salt.</p>
-                                </div>
-                            </li>
-                            <li>
-                                <div class="step-number">2</div>
-                                <div class="step-content">
-                                    <p>In another bowl, beat eggs and then whisk in milk, melted butter, and vanilla extract.</p>
-                                </div>
-                            </li>
-                            <li>
-                                <div class="step-number">3</div>
-                                <div class="step-content">
-                                    <p>Pour the wet ingredients into the dry ingredients and stir until just combined. Don't overmix - a few lumps are okay!</p>
-                                </div>
-                            </li>
-                            <li>
-                                <div class="step-number">4</div>
-                                <div class="step-content">
-                                    <p>Heat a lightly oiled griddle or non-stick pan over medium heat.</p>
-                                </div>
-                            </li>
-                            <li>
-                                <div class="step-number">5</div>
-                                <div class="step-content">
-                                    <p>Pour ¼ cup of batter for each pancake. Cook until bubbles form on surface and edges look set, about 2-3 minutes.</p>
-                                </div>
-                            </li>
-                            <li>
-                                <div class="step-number">6</div>
-                                <div class="step-content">
-                                    <p>Flip and cook until golden brown on the other side, about 1-2 minutes more.</p>
-                                </div>
-                            </li>
-                            <li>
-                                <div class="step-number">7</div>
-                                <div class="step-content">
-                                    <p>Serve immediately with butter, syrup, or your favorite toppings. Enjoy!</p>
-                                </div>
-                            </li>
-                        </ol>
-                    </section>
-
-                    <section class="tips-section">
-                        <h2>Chef's Tips</h2>
-                        <div class="tips-grid">
-                            <div class="tip-card">
-                                <h4>💡 Pro Tip</h4>
-                                <p>Don't overmix the batter - lumps are your friend for fluffy pancakes!</p>
-                            </div>
-                            <div class="tip-card">
-                                <h4>🔥 Heat Control</h4>
-                                <p>Medium heat is key. Too hot and they'll burn outside while staying raw inside.</p>
-                            </div>
-                            <div class="tip-card">
-                                <h4>🥞 Perfect Flip</h4>
-                                <p>Wait for bubbles to form and pop before flipping for best results.</p>
-                            </div>
-                        </div>
-                    </section>
-                </div>
-
-                <section class="reviews-section">
-                    <h2>Reviews & Comments</h2>
-                    <div class="add-review">
-                        <h3>Leave a Review</h3>
-                        <form class="review-form">
-                            <div class="rating-input">
-                                <label>Your Rating:</label>
-                                <div class="star-rating">
-                                    <span class="star" data-rating="1">⭐</span>
-                                    <span class="star" data-rating="2">⭐</span>
-                                    <span class="star" data-rating="3">⭐</span>
-                                    <span class="star" data-rating="4">⭐</span>
-                                    <span class="star" data-rating="5">⭐</span>
-                                </div>
-                            </div>
-                            <textarea placeholder="Share your experience with this recipe..." rows="4"></textarea>
-                            <button type="submit" class="btn btn-primary">Submit Review</button>
-                        </form>
-                    </div>
-
-                    <div class="reviews-list">
-                        <div class="review-item">
-                            <div class="review-header">
-                                <img src="/placeholder.svg?height=40&width=40" alt="User" class="reviewer-avatar">
-                                <div class="reviewer-info">
-                                    <h4>Mike Chen</h4>
-                                    <div class="review-rating">⭐⭐⭐⭐⭐</div>
-                                    <span class="review-date">2 days ago</span>
-                                </div>
-                            </div>
-                            <p class="review-text">Amazing recipe! My kids loved these pancakes. They turned out so fluffy and delicious. Will definitely make again!</p>
-                        </div>
-
-                        <div class="review-item">
-                            <div class="review-header">
-                                <img src="/placeholder.svg?height=40&width=40" alt="User" class="reviewer-avatar">
-                                <div class="reviewer-info">
-                                    <h4>Emma Davis</h4>
-                                    <div class="review-rating">⭐⭐⭐⭐</div>
-                                    <span class="review-date">1 week ago</span>
-                                </div>
-                            </div>
-                            <p class="review-text">Great recipe for beginners! Easy to follow instructions and perfect results every time.</p>
-                        </div>
-                    </div>
-                </section>
-            </article>
+    <!-- Main Content -->
+    <main class="container main-content">
+        <!-- Breadcrumb -->
+        <div class="breadcrumb">
+            <a href="recipes.html">Recipes</a> &gt; <span>Recipe Name</span>
         </div>
+
+        <!-- Recipe Detail Section -->
+        <article class="recipe-detail">
+            <div class="recipe-image">
+                <img src="https://via.placeholder.com/800x600" alt="Recipe Name">
+                <button class="save-recipe-btn" title="Save to favorites">🤍</button>
+            </div>
+            
+            <div class="recipe-info">
+                <h1>Recipe Name</h1>
+                <p class="recipe-description">This is a delicious recipe that everyone will love. Perfect for any occasion.</p>
+                
+                <div class="meta-grid">
+                    <div class="meta-item">
+                        <div class="meta-icon">⏱️</div>
+                        <div class="meta-label">Prep Time</div>
+                        <div class="meta-value">15 minutes</div>
+                    </div>
+                    <div class="meta-item">
+                        <div class="meta-icon">🍳</div>
+                        <div class="meta-label">Cook Time</div>
+                        <div class="meta-value">30 minutes</div>
+                    </div>
+                    <div class="meta-item">
+                        <div class="meta-icon">🍽️</div>
+                        <div class="meta-label">Servings</div>
+                        <div class="meta-value">4 people</div>
+                    </div>
+                    <div class="meta-item">
+                        <div class="meta-icon">📊</div>
+                        <div class="meta-label">Difficulty</div>
+                        <div class="meta-value">Medium</div>
+                    </div>
+                </div>
+                
+                <div class="author-info">
+                    <div class="author-avatar">C</div>
+                    <div>
+                        <h3>Chef Name</h3>
+                        <p>Recipe Creator</p>
+                    </div>
+                </div>
+            </div>
+        </article>
+
+        <!-- Ingredients Section -->
+        <section class="ingredients-section">
+            <h2 class="section-title">
+                <i class="fas fa-shopping-basket"></i> Ingredients
+            </h2>
+            <ul class="ingredients-list">
+                <!-- Ingredients will be dynamically populated -->
+                <li>
+                    <input type="checkbox" id="ingredient1" class="ingredient-checkbox">
+                    <label for="ingredient1">2 cups all-purpose flour</label>
+                </li>
+                <li>
+                    <input type="checkbox" id="ingredient2" class="ingredient-checkbox">
+                    <label for="ingredient2">1 cup sugar</label>
+                </li>
+            </ul>
+        </section>
+
+        <!-- Instructions Section -->
+        <section class="instructions-section">
+            <h2 class="section-title">
+                <i class="fas fa-list-ol"></i> Instructions
+            </h2>
+            <ul class="instructions-list">
+                <!-- Instructions will be dynamically populated -->
+                <li class="instruction-step" data-step="1">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <p>Preheat oven to 350°F (175°C) and grease a baking dish.</p>
+                    </div>
+                </li>
+                <li class="instruction-step" data-step="2">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <p>In a large bowl, mix the flour and sugar together.</p>
+                    </div>
+                </li>
+            </ul>
+        </section>
+
+        <!-- Tips Section -->
+        <section class="tips-section">
+            <h2 class="section-title">
+                <i class="fas fa-lightbulb"></i> Chef's Tips
+            </h2>
+            <div class="tips-grid">
+                <!-- Tips will be dynamically populated -->
+                <div class="tip-card">
+                    <h4>💡 Storage Tip</h4>
+                    <p>Store leftovers in an airtight container in the refrigerator for up to 3 days.</p>
+                </div>
+            </div>
+        </section>
     </main>
 
+    <!-- Footer -->
     <footer class="main-footer">
         <div class="container">
             <div class="footer-content">
@@ -239,10 +146,30 @@
                     <h3>EasyBites</h3>
                     <p>Making cooking accessible and enjoyable for everyone.</p>
                 </div>
+                <div class="footer-section">
+                    <h4>Quick Links</h4>
+                    <ul>
+                        <li><a href="recipes.html">Browse Recipes</a></li>
+                        <li><a href="submit-recipe.html">Share Recipe</a></li>
+                        <li><a href="feedback.html">Feedback</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Community</h4>
+                    <ul>
+                        <li><a href="register.html">Join Us</a></li>
+                        <li><a href="login.html">Login</a></li>
+                        <li><a href="admin-login.html">Admin</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 EasyBites. All rights reserved.</p>
             </div>
         </div>
     </footer>
 
+    <!-- Scripts -->
     <script src="scripts/main.js"></script>
     <script src="scripts/recipe-detail.js"></script>
 </body>

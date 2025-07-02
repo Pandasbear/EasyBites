@@ -30,4 +30,5 @@ public class Recipe : BaseModel
     [Column("status")] public string Status { get; set; } = string.Empty;
 
     [Column("total_time")] public int? TotalTime { get; set; }
+    [Column("user_id")] public string? UserId { get; set; }
 } 

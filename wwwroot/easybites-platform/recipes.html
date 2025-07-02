@@ -6,6 +6,8 @@
     <title>Browse Recipes - EasyBites</title>
     <link rel="stylesheet" href="styles/main.css">
     <link rel="stylesheet" href="styles/recipes.css">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
 </head>
 <body>
     <header class="main-header">
@@ -21,181 +23,68 @@
                     <li><a href="login.html" class="nav-link">Login</a></li>
                     <li><a href="register.html" class="nav-link btn-primary">Sign Up</a></li>
                 </ul>
+                <div class="hamburger">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
             </div>
         </nav>
     </header>
 
-    <main class="recipes-main">
-        <div class="container">
-            <div class="page-header">
-                <h1>Browse Recipes</h1>
-                <p>Discover delicious recipes shared by our community</p>
-            </div>
-
-            <div class="recipes-filters">
-                <div class="search-bar">
-                    <input type="text" id="searchInput" placeholder="Search recipes..." class="search-input">
-                    <button class="search-btn">🔍</button>
-                </div>
+    <!-- Main Content -->
+    <main class="container main-content">
+        <section class="recipes-hero">
+            <h1>Discover Delicious Recipes</h1>
+            <p>Explore our collection of tasty recipes for every occasion</p>
+        </section>
+        
+        <!-- Search and Filter Section -->
+        <section class="search-filter-section">
+            <div class="search-container">
+                <form class="search-form">
+                    <div class="search-input-group">
+                        <input type="search" placeholder="Search recipes..." aria-label="Search recipes">
+                        <button type="submit" class="search-btn">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </form>
                 
-                <div class="filter-options">
-                    <select id="categoryFilter" class="filter-select">
-                        <option value="">All Categories</option>
-                        <option value="breakfast">Breakfast</option>
-                        <option value="lunch">Lunch</option>
-                        <option value="dinner">Dinner</option>
-                        <option value="snacks">Snacks</option>
-                        <option value="desserts">Desserts</option>
-                        <option value="beverages">Beverages</option>
-                    </select>
-
-                    <select id="difficultyFilter" class="filter-select">
-                        <option value="">All Levels</option>
-                        <option value="easy">Easy</option>
-                        <option value="medium">Medium</option>
-                        <option value="hard">Hard</option>
-                    </select>
-
-                    <select id="timeFilter" class="filter-select">
-                        <option value="">Any Time</option>
-                        <option value="15">Under 15 min</option>
-                        <option value="30">Under 30 min</option>
-                        <option value="60">Under 1 hour</option>
-                        <option value="60+">1+ hours</option>
-                    </select>
-                </div>
+                <form class="filter-form">
+                    <div class="filter-group">
+                        <label for="difficulty">Difficulty</label>
+                        <select name="difficulty" id="difficulty">
+                            <option value="">Any</option>
+                            <option value="easy">Easy</option>
+                            <option value="medium">Medium</option>
+                            <option value="hard">Hard</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label for="time">Time</label>
+                        <select name="time" id="time">
+                            <option value="">Any</option>
+                            <option value="15">Under 15 min</option>
+                            <option value="30">Under 30 min</option>
+                            <option value="60">Under 60 min</option>
+                        </select>
+                    </div>
+                </form>
             </div>
-
-            <div class="recipes-grid" id="recipesGrid">
-                <article class="recipe-card" data-category="breakfast" data-difficulty="easy" data-time="15">
-                    <img src="/placeholder.svg?height=200&width=300" alt="Fluffy Pancakes">
-                    <div class="recipe-info">
-                        <h3><a href="recipe-detail.html?id=1">Fluffy Pancakes</a></h3>
-                        <p>Perfect weekend breakfast that's quick and easy to make</p>
-                        <div class="recipe-meta">
-                            <span class="time">⏱️ 15 min</span>
-                            <span class="difficulty easy">🟢 Easy</span>
-                            <span class="category">🥞 Breakfast</span>
-                        </div>
-                        <div class="recipe-author">
-                            <span>By: Sarah Johnson</span>
-                            <div class="recipe-rating">
-                                <span class="stars">⭐⭐⭐⭐⭐</span>
-                                <span class="rating-count">(24)</span>
-                            </div>
-                        </div>
-                    </div>
-                </article>
-
-                <article class="recipe-card" data-category="lunch" data-difficulty="easy" data-time="20">
-                    <img src="/placeholder.svg?height=200&width=300" alt="Quick Pasta Salad">
-                    <div class="recipe-info">
-                        <h3><a href="recipe-detail.html?id=2">Quick Pasta Salad</a></h3>
-                        <p>Fresh and colorful pasta salad perfect for lunch</p>
-                        <div class="recipe-meta">
-                            <span class="time">⏱️ 20 min</span>
-                            <span class="difficulty easy">🟢 Easy</span>
-                            <span class="category">🥗 Lunch</span>
-                        </div>
-                        <div class="recipe-author">
-                            <span>By: Mike Chen</span>
-                            <div class="recipe-rating">
-                                <span class="stars">⭐⭐⭐⭐</span>
-                                <span class="rating-count">(18)</span>
-                            </div>
-                        </div>
-                    </div>
-                </article>
-
-                <article class="recipe-card" data-category="dinner" data-difficulty="medium" data-time="45">
-                    <img src="/placeholder.svg?height=200&width=300" alt="Chicken Stir Fry">
-                    <div class="recipe-info">
-                        <h3><a href="recipe-detail.html?id=3">Chicken Stir Fry</a></h3>
-                        <p>Healthy and flavorful dinner ready in under an hour</p>
-                        <div class="recipe-meta">
-                            <span class="time">⏱️ 45 min</span>
-                            <span class="difficulty medium">🟡 Medium</span>
-                            <span class="category">🍗 Dinner</span>
-                        </div>
-                        <div class="recipe-author">
-                            <span>By: Lisa Wong</span>
-                            <div class="recipe-rating">
-                                <span class="stars">⭐⭐⭐⭐⭐</span>
-                                <span class="rating-count">(31)</span>
-                            </div>
-                        </div>
-                    </div>
-                </article>
-
-                <article class="recipe-card" data-category="snacks" data-difficulty="easy" data-time="10">
-                    <img src="/placeholder.svg?height=200&width=300" alt="Energy Balls">
-                    <div class="recipe-info">
-                        <h3><a href="recipe-detail.html?id=4">No-Bake Energy Balls</a></h3>
-                        <p>Healthy snack that requires no baking</p>
-                        <div class="recipe-meta">
-                            <span class="time">⏱️ 10 min</span>
-                            <span class="difficulty easy">🟢 Easy</span>
-                            <span class="category">🥜 Snacks</span>
-                        </div>
-                        <div class="recipe-author">
-                            <span>By: Emma Davis</span>
-                            <div class="recipe-rating">
-                                <span class="stars">⭐⭐⭐⭐</span>
-                                <span class="rating-count">(15)</span>
-                            </div>
-                        </div>
-                    </div>
-                </article>
-
-                <article class="recipe-card" data-category="desserts" data-difficulty="medium" data-time="60">
-                    <img src="/placeholder.svg?height=200&width=300" alt="Chocolate Chip Cookies">
-                    <div class="recipe-info">
-                        <h3><a href="recipe-detail.html?id=5">Classic Chocolate Chip Cookies</a></h3>
-                        <p>Homemade cookies that everyone will love</p>
-                        <div class="recipe-meta">
-                            <span class="time">⏱️ 1 hour</span>
-                            <span class="difficulty medium">🟡 Medium</span>
-                            <span class="category">🍪 Desserts</span>
-                        </div>
-                        <div class="recipe-author">
-                            <span>By: Tom Baker</span>
-                            <div class="recipe-rating">
-                                <span class="stars">⭐⭐⭐⭐⭐</span>
-                                <span class="rating-count">(42)</span>
-                            </div>
-                        </div>
-                    </div>
-                </article>
-
-                <article class="recipe-card" data-category="beverages" data-difficulty="easy" data-time="5">
-                    <img src="/placeholder.svg?height=200&width=300" alt="Fresh Smoothie">
-                    <div class="recipe-info">
-                        <h3><a href="recipe-detail.html?id=6">Tropical Smoothie</a></h3>
-                        <p>Refreshing blend of tropical fruits</p>
-                        <div class="recipe-meta">
-                            <span class="time">⏱️ 5 min</span>
-                            <span class="difficulty easy">🟢 Easy</span>
-                            <span class="category">🥤 Beverages</span>
-                        </div>
-                        <div class="recipe-author">
-                            <span>By: Ana Rodriguez</span>
-                            <div class="recipe-rating">
-                                <span class="stars">⭐⭐⭐⭐</span>
-                                <span class="rating-count">(12)</span>
-                            </div>
-                        </div>
-                    </div>
-                </article>
+        </section>
+        
+        <!-- Recipes Grid Section -->
+        <section class="recipes-section">
+            <h2>All Recipes</h2>
+            <div id="recipesGrid" class="recipes-grid">
+                <!-- Recipes will be dynamically loaded here -->
             </div>
-
-            <div class="pagination">
-                <button class="pagination-btn" disabled>← Previous</button>
-                <span class="pagination-info">Page 1 of 3</span>
-                <button class="pagination-btn">Next →</button>
-            </div>
-        </div>
+        </section>
     </main>
 
+    <!-- Footer -->
     <footer class="main-footer">
         <div class="container">
             <div class="footer-content">
@@ -211,10 +100,22 @@
                         <li><a href="feedback.html">Feedback</a></li>
                     </ul>
                 </div>
+                <div class="footer-section">
+                    <h4>Community</h4>
+                    <ul>
+                        <li><a href="register.html">Join Us</a></li>
+                        <li><a href="login.html">Login</a></li>
+                        <li><a href="admin-login.html">Admin</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 EasyBites. All rights reserved.</p>
             </div>
         </div>
     </footer>
 
+    <!-- Scripts -->
     <script src="scripts/main.js"></script>
     <script src="scripts/recipes.js"></script>
 </body>
