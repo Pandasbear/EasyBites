@@ -42,7 +42,7 @@
         <!-- Recipe Detail Section -->
         <article class="recipe-detail">
             <div class="recipe-image">
-                <img src="https://via.placeholder.com/800x600" alt="Recipe Name">
+                <img src="" alt="Recipe Name">
                 <button class="save-recipe-btn" title="Save to favorites">🤍</button>
             </div>
             
@@ -106,7 +106,13 @@
             <h2 class="section-title">
                 <i class="fas fa-list-ol"></i> Instructions
             </h2>
-            <ul class="instructions-list">
+            <div class="recipe-progress mb-3">
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 0%;"></div>
+                </div>
+                <div class="progress-text"><span id="currentStepDisplay">Step 0</span> of <span id="totalStepsDisplay">0</span></div>
+            </div>
+            <ul class="instructions-list" id="instructionsList">
                 <!-- Instructions will be dynamically populated -->
                 <li class="instruction-step" data-step="1">
                     <div class="step-number">1</div>
@@ -121,6 +127,10 @@
                     </div>
                 </li>
             </ul>
+            <div class="step-navigation">
+                <button id="prevStepBtn" class="btn btn-secondary step-prev" disabled>Previous Step</button>
+                <button id="nextStepBtn" class="btn btn-primary step-next">Next Step</button>
+            </div>
         </section>
 
         <!-- Tips Section -->

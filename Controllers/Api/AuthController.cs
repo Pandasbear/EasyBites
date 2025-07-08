@@ -7,6 +7,12 @@ using System.Security.Cryptography;
 using Microsoft.AspNetCore.Http;
 using Supabase.Postgrest.Attributes;
 using Supabase.Postgrest.Models;
+using EasyBites.Services;
+using Supabase.Postgrest.Exceptions;
+using System.Collections.Concurrent;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 
 namespace EasyBites.Controllers.Api;
 
@@ -15,9 +21,10 @@ namespace EasyBites.Controllers.Api;
 public class AuthController : ControllerBase
 {
     private readonly Supabase.Client _supabase;
-    private static readonly Dictionary<string, string> Sessions = new(); // sessionId -> email
+    private readonly ActivityLogService _activityLog;
+    private readonly SupabaseStorageService _supabaseStorageService;
 
-    private static string HashPassword(string password)
+    internal static string HashPassword(string password)
     {
         using var sha = SHA256.Create();
         var bytes = sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(password));
@@ -28,10 +35,23 @@ public class AuthController : ControllerBase
 
     private static string GenerateSessionId() => Guid.NewGuid().ToString();
 
-    public AuthController(Supabase.Client supabase)
+    public AuthController(Supabase.Client supabase, ActivityLogService activityLog, SupabaseStorageService supabaseStorageService)
     {
         _supabase = supabase;
-        Console.WriteLine("[AuthController] Initialized with Supabase client");
+        _activityLog = activityLog;
+        _supabaseStorageService = supabaseStorageService;
+        Console.WriteLine("[AuthController] Initialized with Supabase client and ActivityLogService");
+    }
+
+    private string GetClientIp()
+    {
+        return Request.Headers["X-Forwarded-For"].FirstOrDefault() ?? 
+               Request.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+    }
+
+    public string GetUserAgent()
+    {
+        return Request.Headers["User-Agent"].FirstOrDefault() ?? "unknown";
     }
 
     [HttpPost("register")]
@@ -45,11 +65,19 @@ public class AuthController : ControllerBase
         try {
             Console.WriteLine($"[Register] Using Supabase client to register user");
             // Check for existing user in Supabase
-            var existing = await _supabase.From<User>().Filter("email", Supabase.Postgrest.Constants.Operator.Equals, request.Email).Get();
+            var emailFilters = new List<Supabase.Postgrest.Interfaces.IPostgrestQueryFilter>
+            {
+                new Supabase.Postgrest.QueryFilter("email", Supabase.Postgrest.Constants.Operator.Equals, request.Email)
+            };
+            var existing = await _supabase.From<User>().Or(emailFilters).Get();
             Console.WriteLine($"[Register] Existing email count: {existing.Models.Count}");
             if (existing.Models.Any()) { Console.WriteLine("[Register] Email already registered"); return Conflict("Email already registered"); }
             
-            var existingUsername = await _supabase.From<User>().Filter("username", Supabase.Postgrest.Constants.Operator.Equals, request.Username).Get();
+            var usernameFilters = new List<Supabase.Postgrest.Interfaces.IPostgrestQueryFilter>
+            {
+                new Supabase.Postgrest.QueryFilter("username", Supabase.Postgrest.Constants.Operator.Equals, request.Username)
+            };
+            var existingUsername = await _supabase.From<User>().Or(usernameFilters).Get();
             Console.WriteLine($"[Register] Existing username count: {existingUsername.Models.Count}");
             if (existingUsername.Models.Any()) { Console.WriteLine("[Register] Username already taken"); return Conflict("Username already taken"); }
             
@@ -63,6 +91,7 @@ public class AuthController : ControllerBase
                 PasswordHash = HashPassword(request.Password),
                 CookingLevel = request.CookingLevel ?? "Beginner",
                 IsAdmin = false,
+                Active = true, // New users are active by default
                 CreatedAt = DateTime.UtcNow,
                 Bio = request.Bio,
                 FavoriteCuisine = request.FavoriteCuisine,
@@ -79,9 +108,46 @@ public class AuthController : ControllerBase
                 Console.WriteLine("[Register] Failed to insert user into Supabase");
                 return StatusCode(500, "Failed to create user account");
             }
+
+            // Also create corresponding user profile
+            try
+            {
+                var userProfile = new UserProfile
+                {
+                    Id = user.Id,
+                    FirstName = user.FirstName,
+                    LastName = user.LastName,
+                    Username = user.Username,
+                    FavoriteCuisine = user.FavoriteCuisine,
+                    Location = user.Location,
+                    Bio = user.Bio,
+                    AdminVerified = user.IsAdmin,
+                    Active = true,
+                    CookingLevel = user.CookingLevel ?? "Beginner",
+                    CreatedAt = user.CreatedAt,
+                    UpdatedAt = DateTime.UtcNow,
+                    LastLogin = null // Will be set on first login
+                };
+
+                await _supabase.From<UserProfile>().Insert(userProfile);
+                Console.WriteLine($"[Register] Created user profile for user {user.Id}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Register] Failed to create user profile: {ex.Message}");
+                // Don't fail registration if profile creation fails - user can still login
+                // The login process will handle creating the profile if missing
+            }
+            
+            // Log the registration activity
+            await _activityLog.LogUserRegisteredAsync(user.Id.ToString(), user.Email, GetClientIp(), GetUserAgent());
             
             Console.WriteLine("[Register] Success");
-            return Created("/api/auth/me", new { user.Id, user.Email, user.Username });
+            return Created("/api/auth/me", new { 
+                id = user.Id, 
+                email = user.Email, 
+                username = user.Username 
+            });
         }
         catch (Exception ex) {
             Console.WriteLine($"[Register] Error: {ex.Message}");
@@ -130,16 +196,94 @@ public class AuthController : ControllerBase
                 Console.WriteLine("[Login] Password hash mismatch");
                 return Unauthorized(new { success = false, message = "Invalid credentials" });
             }
+
+            // Check if user account is active
+            if (!user.Active)
+            {
+                Console.WriteLine($"[Login] User account is suspended: {user.Email}");
+                return Unauthorized(new { success = false, message = "Your account has been suspended. Please contact support for assistance." });
+            }
             
-            var sessionId = GenerateSessionId();
-            Sessions[sessionId] = user.Email;
-            Response.Cookies.Append("session_id", sessionId, new CookieOptions { 
-                HttpOnly = true, 
-                SameSite = SameSiteMode.Strict,
-                Expires = DateTime.Now.AddDays(7) // Set cookie to expire in 7 days
-            });
-            Console.WriteLine($"[Login] Success: {user.Email}");
-            return Ok(new { success = true, user = new { user.Id, user.Email, user.Username, user.FirstName, user.LastName } });
+            // Create claims for the authenticated user
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new Claim(ClaimTypes.Name, user.Username),
+                new Claim(ClaimTypes.Email, user.Email),
+                new Claim(ClaimTypes.Role, user.IsAdmin ? "Admin" : "User")
+            };
+
+            var claimsIdentity = new ClaimsIdentity(
+                claims, CookieAuthenticationDefaults.AuthenticationScheme);
+
+            var authProperties = new AuthenticationProperties
+            {
+                ExpiresUtc = DateTimeOffset.UtcNow.AddDays(7) // Session expiry
+            };
+
+            await HttpContext.SignInAsync(
+                CookieAuthenticationDefaults.AuthenticationScheme,
+                new ClaimsPrincipal(claimsIdentity),
+                authProperties);
+
+            // Log the cookie being set
+            Console.WriteLine($"[Login] Attempted to sign in user {user.Username} ({user.Id}).");
+            Console.WriteLine($"[Login] Cookie authentication scheme used: {CookieAuthenticationDefaults.AuthenticationScheme}");
+            // Note: HttpContext.Response.Headers["Set-Cookie"] can show the actual cookie header sent
+            foreach (var header in HttpContext.Response.Headers["Set-Cookie"])
+            {
+                Console.WriteLine($"[Login] Set-Cookie header: {header}");
+            }
+
+            // Update last login time in user profile
+            try
+            {
+                var userProfileToUpdate = (await _supabase.From<UserProfile>()
+                    .Where(p => p.Id == user.Id)
+                    .Limit(1)
+                    .Get()).Models.FirstOrDefault();
+
+                if (userProfileToUpdate != null)
+                {
+                    userProfileToUpdate.LastLogin = DateTime.UtcNow;
+                    await _supabase.From<UserProfile>().Update(userProfileToUpdate);
+                    Console.WriteLine($"[Login] Updated last login for user profile {user.Id}");
+                }
+                else
+                {
+                    // If profile doesn't exist, create it (should ideally exist from registration)
+                    var newUserProfile = new UserProfile
+                    {
+                        Id = user.Id,
+                        FirstName = user.FirstName,
+                        LastName = user.LastName,
+                        Username = user.Username,
+                        FavoriteCuisine = user.FavoriteCuisine,
+                        Location = user.Location,
+                        Bio = user.Bio,
+                        AdminVerified = user.IsAdmin,
+                        Active = user.Active,
+                        CookingLevel = user.CookingLevel,
+                        CreatedAt = user.CreatedAt,
+                        UpdatedAt = DateTime.UtcNow,
+                        LastLogin = DateTime.UtcNow
+                    };
+                    await _supabase.From<UserProfile>().Insert(newUserProfile);
+                    Console.WriteLine($"[Login] Created missing user profile for {user.Id}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Login] Failed to update/create user profile last login: {ex.Message}");
+            }
+
+            // Log user activity
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+            var userAgent = GetUserAgent();
+            await _activityLog.LogUserLoginAsync(user.Id.ToString(), user.Email, ipAddress, userAgent);
+
+            Console.WriteLine("[Login] Success");
+            return Ok(new { message = "Login successful!" });
         }
         catch (Exception ex) {
             Console.WriteLine($"[Login] Error: {ex.Message}");
@@ -155,32 +299,96 @@ public class AuthController : ControllerBase
         if (!ModelState.IsValid) { Console.WriteLine("[AdminLogin] Invalid model"); return ValidationProblem(ModelState); }
         
         try {
-            var users = await _supabase.From<User>()
-                .Filter("username", Supabase.Postgrest.Constants.Operator.Equals, request.AdminUsername)
-                .Filter("is_admin", Supabase.Postgrest.Constants.Operator.Equals, true)
-                .Get();
+            // Use the same QueryFilter pattern as the Login method
+            var filters = new List<Supabase.Postgrest.Interfaces.IPostgrestQueryFilter>
+            {
+                new Supabase.Postgrest.QueryFilter("username", Supabase.Postgrest.Constants.Operator.Equals, request.AdminUsername)
+            };
+            
+            var adminUser = await _supabase.From<User>().Or(filters).Get();
                 
-            Console.WriteLine($"[AdminLogin] Users found: {users.Models.Count}");
-            var user = users.Models.FirstOrDefault();
+            Console.WriteLine($"[AdminLogin] Users found: {adminUser.Models.Count}");
+            var user = adminUser.Models.FirstOrDefault(u => u.IsAdmin);
             if (user == null)
             {
-                Console.WriteLine("[AdminLogin] User not found");
+                Console.WriteLine("[AdminLogin] Admin user not found");
                 return Unauthorized("Invalid admin credentials");
             }
             
+            // Check password
             var inputHash = HashPassword(request.AdminPassword);
             Console.WriteLine($"[AdminLogin] Input hash: {inputHash}, DB hash: {user.PasswordHash}");
-            if (user.PasswordHash != inputHash || request.AdminCode != "123456")
+            if (user.PasswordHash != inputHash)
             {
-                Console.WriteLine("[AdminLogin] Password hash mismatch or code invalid");
+                Console.WriteLine("[AdminLogin] Password hash mismatch");
+                return Unauthorized("Invalid admin credentials");
+            }
+            
+            // Check security code
+            if (string.IsNullOrEmpty(user.AdminSecurityCode) || user.AdminSecurityCode != request.AdminCode)
+            {
+                Console.WriteLine($"[AdminLogin] Security code mismatch. Expected: {user.AdminSecurityCode}, Got: {request.AdminCode}");
                 return Unauthorized("Invalid admin credentials");
             }
             
             var sessionId = GenerateSessionId();
-            Sessions[sessionId] = user.Email;
-            Response.Cookies.Append("session_id", sessionId, new CookieOptions { HttpOnly = true, SameSite = SameSiteMode.Strict });
-            Console.WriteLine($"[AdminLogin] Success: {user.Email}");
-            return Ok(new { user.Id, user.Email, user.Username, Role = "admin" });
+            var expiresAt = DateTime.Now.AddDays(1); // Admin sessions expire sooner
+
+            var adminSession = new UserSession
+            {
+                SessionId = sessionId,
+                UserId = user.Id,
+                IsAdmin = true, 
+                ExpiresAt = expiresAt
+            };
+
+            await _supabase.From<UserSession>().Insert(adminSession);
+
+            Response.Cookies.Append("session_id", sessionId, new CookieOptions { 
+                HttpOnly = true, 
+                SameSite = SameSiteMode.Strict,
+                Expires = expiresAt
+            });
+            
+            // Create claims for the authenticated user
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new Claim(ClaimTypes.Name, user.Username),
+                new Claim(ClaimTypes.Email, user.Email),
+                new Claim("isAdmin", user.IsAdmin.ToString()), // Custom claim for admin status
+                new Claim("sessionId", sessionId) // Store session_id as a claim
+            };
+
+            var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            var authProperties = new AuthenticationProperties
+            {
+                IsPersistent = true, // Remember me
+                ExpiresUtc = expiresAt
+            };
+
+            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(claimsIdentity), authProperties);
+
+            // Log the sign-in success
+            Console.WriteLine($"[AdminLogin] Attempted to sign in admin {user.Username} ({user.Id}).");
+            Console.WriteLine($"[AdminLogin] Cookie authentication scheme used: {CookieAuthenticationDefaults.AuthenticationScheme}");
+            foreach (var header in HttpContext.Response.Headers["Set-Cookie"])
+            {
+                Console.WriteLine($"[AdminLogin] Set-Cookie header: {header}");
+            }
+            Console.WriteLine($"[AdminLogin] Success: {user.Email} (Admin Session)");
+            return Ok(new { 
+                success = true,
+                user = new {
+                    id = user.Id, 
+                    email = user.Email, 
+                    username = user.Username, 
+                    firstName = user.FirstName,
+                    lastName = user.LastName,
+                    isAdmin = true,
+                    isAdminSession = true
+                }
+            });
         }
         catch (Exception ex) {
             Console.WriteLine($"[AdminLogin] Error: {ex.Message}");
@@ -189,81 +397,96 @@ public class AuthController : ControllerBase
         }
     }
 
+    // Helper method to get the current authenticated user from HttpContext.User.Claims
+    private async Task<User?> GetUserFromDatabase(Guid userId)
+    {
+        Console.WriteLine($"[GetUserFromDatabase] Looking up user with ID: {userId}");
+        var user = (await _supabase.From<User>().Where(u => u.Id == userId).Limit(1).Get()).Models.FirstOrDefault();
+        if (user != null)
+        {
+            Console.WriteLine($"[GetUserFromDatabase] Found user: {user.Username}");
+        }
+        return user;
+    }
+
+    // New helper to retrieve userId from cookie-auth claims
+    private Guid? GetAuthenticatedUserIdFromClaims()
+    {
+        var userIdClaim = HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
+        if (userIdClaim == null) return null;
+        if (Guid.TryParse(userIdClaim.Value, out var uid)) return uid;
+        return null;
+    }
+
     [HttpGet("me")]
     public async Task<IActionResult> GetCurrentUser()
     {
-        try
+        // Get the current user from claims (set during login)
+        var userClaims = HttpContext.User.Claims;
+        var userIdClaim = userClaims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
+        if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
         {
-            if (!Request.Cookies.TryGetValue("session_id", out var sessionId))
+            Console.WriteLine("[GetCurrentUser] No authenticated user found or invalid user ID.");
+            if (userIdClaim == null)
             {
-                Console.WriteLine("[GetCurrentUser] No session cookie found");
-                return Unauthorized(new { success = false, message = "Not authenticated" });
+                Console.WriteLine("[GetCurrentUser] ClaimTypes.NameIdentifier not found in claims.");
             }
-
-            if (!Sessions.TryGetValue(sessionId, out var email))
+            else
             {
-                Console.WriteLine("[GetCurrentUser] Session ID not found in session store");
-                return Unauthorized(new { success = false, message = "Session expired" });
+                Console.WriteLine($"[GetCurrentUser] Failed to parse userIdClaim.Value: '{userIdClaim.Value}' into GUID.");
             }
-
-            Console.WriteLine($"[GetCurrentUser] Looking up user with email: {email}");
-            var users = await _supabase.From<User>()
-                .Filter("email", Supabase.Postgrest.Constants.Operator.Equals, email)
-                .Get();
-
-            var user = users.Models.FirstOrDefault();
-            if (user == null)
+            Console.WriteLine("[GetCurrentUser] All claims:");
+            foreach (var claim in userClaims)
             {
-                Console.WriteLine("[GetCurrentUser] User not found in database");
-                Sessions.Remove(sessionId);
-                Response.Cookies.Delete("session_id");
-                return Unauthorized(new { success = false, message = "User not found" });
+                Console.WriteLine($"  Type: {claim.Type}, Value: {claim.Value}");
             }
-
-            Console.WriteLine($"[GetCurrentUser] Found user: {user.Username}");
-            return Ok(new
-            {
-                id = user.Id,
-                email = user.Email,
-                username = user.Username,
-                firstName = user.FirstName,
-                lastName = user.LastName,
-                cookingLevel = user.CookingLevel,
-                isAdmin = user.IsAdmin,
-                createdAt = user.CreatedAt,
-                bio = user.Bio,
-                favoriteCuisine = user.FavoriteCuisine,
-                location = user.Location,
-                profileImageUrl = user.ProfileImageUrl,
-                memberSince = user.CreatedAt.ToString("MMMM yyyy")
-            });
+            return Unauthorized(new { error = "User not authenticated" });
         }
-        catch (Exception ex)
+
+        // Optionally, fetch full user details from the database if needed
+        var user = await GetUserFromDatabase(userId);
+        if (user == null)
         {
-            Console.WriteLine($"[GetCurrentUser] Error: {ex.Message}");
-            Console.WriteLine($"[GetCurrentUser] Error details: {ex}");
-            return StatusCode(500, new { success = false, message = "An error occurred while retrieving user information" });
+            Console.WriteLine($"[GetCurrentUser] User profile not found for ID: {userId}");
+            return NotFound(new { error = "User profile not found" });
         }
+
+        // Check if there's an admin session for this user
+        var isAdminSession = await _supabase.From<UserSession>()
+            .Where(s => s.UserId == userId)
+            .Where(s => s.IsAdmin == true)
+            .Where(s => s.ExpiresAt > DateTime.UtcNow)
+            .Limit(1)
+            .Get();
+
+        var userDto = new UserDto(
+            Id: user.Id,
+            Email: user.Email,
+            Username: user.Username,
+            FirstName: user.FirstName,
+            LastName: user.LastName,
+            CookingLevel: user.CookingLevel,
+            IsAdmin: user.IsAdmin,
+            CreatedAt: user.CreatedAt,
+            Bio: user.Bio,
+            FavoriteCuisine: user.FavoriteCuisine,
+            Location: user.Location,
+            ProfileImageUrl: user.ProfileImageUrl,
+            MemberSince: user.CreatedAt.ToShortDateString(),
+            IsAdminSession: isAdminSession.Models.Any() // Check if admin session exists
+        );
+
+        return Ok(userDto);
     }
 
     [HttpPost("logout")]
-    public IActionResult Logout()
+    public async Task<IActionResult> Logout()
     {
-        try
-        {
-            if (Request.Cookies.TryGetValue("session_id", out var sessionId))
-            {
-                Console.WriteLine("[Logout] Removing session");
-                Sessions.Remove(sessionId);
-                Response.Cookies.Delete("session_id");
-            }
-            return Ok(new { success = true, message = "Logged out successfully" });
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[Logout] Error: {ex.Message}");
-            return StatusCode(500, new { success = false, message = "An error occurred during logout" });
-        }
+        // Sign out the user using cookie authentication
+        await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+
+        Console.WriteLine("[Logout] User logged out successfully.");
+        return Ok(new { message = "Logged out successfully." });
     }
 
     [HttpPut("profile")]
@@ -272,26 +495,20 @@ public class AuthController : ControllerBase
         try
         {
             Console.WriteLine("[UpdateProfile] Attempting to update user profile");
-            
-            // Check authentication
-            if (!Request.Cookies.TryGetValue("session_id", out var sessionId))
+
+            // Use cookie-based authentication claims instead of the custom session cookie
+            var authenticatedUserId = GetAuthenticatedUserIdFromClaims();
+            if (authenticatedUserId == null)
             {
-                Console.WriteLine("[UpdateProfile] No session cookie found");
+                Console.WriteLine("[UpdateProfile] No authenticated user id found in claims");
                 return Unauthorized(new { success = false, message = "Not authenticated" });
             }
 
-            if (!Sessions.TryGetValue(sessionId, out var email))
-            {
-                Console.WriteLine("[UpdateProfile] Session ID not found in session store");
-                return Unauthorized(new { success = false, message = "Session expired" });
-            }
-
-            // Find the user
-            var users = await _supabase.From<User>()
-                .Filter("email", Supabase.Postgrest.Constants.Operator.Equals, email)
-                .Get();
-
-            var user = users.Models.FirstOrDefault();
+            // Retrieve the user from the database
+            var user = (await _supabase.From<User>()
+                                       .Where(u => u.Id == authenticatedUserId)
+                                       .Limit(1)
+                                       .Get()).Models.FirstOrDefault();
             if (user == null)
             {
                 Console.WriteLine("[UpdateProfile] User not found in database");
@@ -304,7 +521,7 @@ public class AuthController : ControllerBase
                 var existingUsername = await _supabase.From<User>()
                     .Filter("username", Supabase.Postgrest.Constants.Operator.Equals, request.Username)
                     .Get();
-                
+
                 if (existingUsername.Models.Any())
                 {
                     Console.WriteLine("[UpdateProfile] Username already taken");
@@ -312,7 +529,7 @@ public class AuthController : ControllerBase
                 }
             }
 
-            // Update user properties but leave created_at untouched
+            // Update fields
             user.FirstName = request.FirstName;
             user.LastName = request.LastName;
             user.Username = request.Username;
@@ -321,23 +538,20 @@ public class AuthController : ControllerBase
             user.FavoriteCuisine = request.FavoriteCuisine;
             user.Location = request.Location;
 
-            // Create a minimal user object with just the fields we want to update
             var updateUser = new UserUpdateDTO
             {
                 Id = user.Id,
-                FirstName = request.FirstName,
-                LastName = request.LastName,
-                Username = request.Username,
-                CookingLevel = request.CookingLevel ?? "Beginner",
-                Bio = request.Bio,
-                FavoriteCuisine = request.FavoriteCuisine,
-                Location = request.Location
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Username = user.Username,
+                CookingLevel = user.CookingLevel,
+                Bio = user.Bio,
+                FavoriteCuisine = user.FavoriteCuisine,
+                Location = user.Location
             };
 
-            // Save changes
-            Console.WriteLine($"[UpdateProfile] Updating user: {user.Email}, {user.Username}");
             var response = await _supabase.From<UserUpdateDTO>()
-                .Filter("id", Supabase.Postgrest.Constants.Operator.Equals, user.Id)
+                .Filter("id", Supabase.Postgrest.Constants.Operator.Equals, user.Id.ToString())
                 .Update(updateUser);
 
             if (response.Models.Count == 0)
@@ -346,22 +560,32 @@ public class AuthController : ControllerBase
                 return StatusCode(500, new { success = false, message = "Failed to update profile" });
             }
 
+            // Update user_profiles as before (unchanged)
+            try
+            {
+                var userProfile = new UserProfile
+                {
+                    Id = user.Id,
+                    FirstName = user.FirstName,
+                    LastName = user.LastName,
+                    Username = user.Username,
+                    FavoriteCuisine = user.FavoriteCuisine,
+                    Location = user.Location,
+                    Bio = user.Bio,
+                    CookingLevel = user.CookingLevel,
+                    UpdatedAt = DateTime.UtcNow
+                };
+
+                await _supabase.From<UserProfile>().Upsert(userProfile);
+                Console.WriteLine("[UpdateProfile] Updated user_profiles table");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[UpdateProfile] Could not update user_profiles: {ex.Message}");
+            }
+
             Console.WriteLine("[UpdateProfile] Success");
-            return Ok(new { 
-                success = true, 
-                message = "Profile updated successfully",
-                user = new {
-                    id = user.Id,
-                    email = user.Email,
-                    username = user.Username,
-                    firstName = user.FirstName,
-                    lastName = user.LastName,
-                    cookingLevel = user.CookingLevel,
-                    bio = user.Bio,
-                    favoriteCuisine = user.FavoriteCuisine,
-                    location = user.Location
-                }
-            });
+            return Ok(new { success = true, message = "Profile updated successfully" });
         }
         catch (Exception ex)
         {
@@ -396,25 +620,17 @@ public class AuthController : ControllerBase
                 return BadRequest(new { success = false, message = "Password must be at least 8 characters" });
             }
             
-            // Check authentication
-            if (!Request.Cookies.TryGetValue("session_id", out var sessionId))
+            var authenticatedUserId = GetAuthenticatedUserIdFromClaims();
+            if (authenticatedUserId == null)
             {
-                Console.WriteLine("[ChangePassword] No session cookie found");
+                Console.WriteLine("[ChangePassword] No authenticated user id found in claims");
                 return Unauthorized(new { success = false, message = "Not authenticated" });
             }
 
-            if (!Sessions.TryGetValue(sessionId, out var email))
-            {
-                Console.WriteLine("[ChangePassword] Session ID not found in session store");
-                return Unauthorized(new { success = false, message = "Session expired" });
-            }
-
-            // Find the user
-            var users = await _supabase.From<User>()
-                .Filter("email", Supabase.Postgrest.Constants.Operator.Equals, email)
-                .Get();
-
-            var user = users.Models.FirstOrDefault();
+            var user = (await _supabase.From<User>()
+                                       .Where(u => u.Id == authenticatedUserId)
+                                       .Limit(1)
+                                       .Get()).Models.FirstOrDefault();
             if (user == null)
             {
                 Console.WriteLine("[ChangePassword] User not found in database");
@@ -429,17 +645,14 @@ public class AuthController : ControllerBase
                 return BadRequest(new { success = false, message = "Current password is incorrect" });
             }
 
-            // Create a minimal user object with just the password hash
             var passwordUpdateUser = new PasswordUpdateDTO
             {
                 Id = user.Id,
                 PasswordHash = HashPassword(request.NewPassword)
             };
             
-            // Save changes
-            Console.WriteLine($"[ChangePassword] Updating password for user: {user.Email}");
             var response = await _supabase.From<PasswordUpdateDTO>()
-                .Filter("id", Supabase.Postgrest.Constants.Operator.Equals, user.Id)
+                .Filter("id", Supabase.Postgrest.Constants.Operator.Equals, user.Id.ToString())
                 .Update(passwordUpdateUser);
 
             if (response.Models.Count == 0)
@@ -465,41 +678,24 @@ public class AuthController : ControllerBase
         try
         {
             Console.WriteLine("[DeleteAccount] Attempting to delete user account");
-            Console.WriteLine($"[DeleteAccount] Request: {request?.Password ?? "null"}");
             
-            // Log model state errors if any
             if (!ModelState.IsValid)
             {
                 Console.WriteLine("[DeleteAccount] Invalid model");
-                foreach (var state in ModelState)
-                {
-                    foreach (var error in state.Value.Errors)
-                    {
-                        Console.WriteLine($"[DeleteAccount] Model error - {state.Key}: {error.ErrorMessage}");
-                    }
-                }
                 return ValidationProblem(ModelState);
             }
-            
-            // Check authentication
-            if (!Request.Cookies.TryGetValue("session_id", out var sessionId))
+
+            var authenticatedUserId = GetAuthenticatedUserIdFromClaims();
+            if (authenticatedUserId == null)
             {
-                Console.WriteLine("[DeleteAccount] No session cookie found");
+                Console.WriteLine("[DeleteAccount] No authenticated user id found in claims");
                 return Unauthorized(new { success = false, message = "Not authenticated" });
             }
 
-            if (!Sessions.TryGetValue(sessionId, out var email))
-            {
-                Console.WriteLine("[DeleteAccount] Session ID not found in session store");
-                return Unauthorized(new { success = false, message = "Session expired" });
-            }
-
-            // Find the user
-            var users = await _supabase.From<User>()
-                .Filter("email", Supabase.Postgrest.Constants.Operator.Equals, email)
-                .Get();
-
-            var user = users.Models.FirstOrDefault();
+            var user = (await _supabase.From<User>()
+                                       .Where(u => u.Id == authenticatedUserId)
+                                       .Limit(1)
+                                       .Get()).Models.FirstOrDefault();
             if (user == null)
             {
                 Console.WriteLine("[DeleteAccount] User not found in database");
@@ -513,47 +709,30 @@ public class AuthController : ControllerBase
                 Console.WriteLine("[DeleteAccount] Password is incorrect");
                 return BadRequest(new { success = false, message = "Password is incorrect" });
             }
-            
-            // Note: In a production environment, you would want to delete related data first
-            // For this demo, we'll delete related data before deleting the user
+
             Console.WriteLine($"[DeleteAccount] Deleting user and their data: {user.Id}");
-            
-            // Delete the user account
-            Console.WriteLine($"[DeleteAccount] Deleting user: {user.Email}, {user.Username}");
-            // Convert Guid to string for the filter
             string userIdString = user.Id.ToString();
-            Console.WriteLine($"[DeleteAccount] User ID as string: {userIdString}");
-            
-            // First delete related data
+
             try {
-                // Execute direct SQL queries instead of RPC functions
-                Console.WriteLine($"[DeleteAccount] Deleting user recipes directly");
                 await _supabase.From<Models.Recipe>()
                     .Filter("user_id", Supabase.Postgrest.Constants.Operator.Equals, userIdString)
                     .Delete();
-                    
-                Console.WriteLine($"[DeleteAccount] Deleting user saved recipes directly");
                 await _supabase.From<SavedRecipe>()
                     .Filter("user_id", Supabase.Postgrest.Constants.Operator.Equals, userIdString)
                     .Delete();
             }
             catch (Exception ex) {
                 Console.WriteLine($"[DeleteAccount] Error deleting related data: {ex.Message}");
-                Console.WriteLine($"[DeleteAccount] Error details: {ex}");
-                // Continue with user deletion even if related data deletion fails
             }
-            
-            // Now delete the user
+
             await _supabase.From<User>()
                 .Filter("id", Supabase.Postgrest.Constants.Operator.Equals, userIdString)
                 .Delete();
-                
-            // For checking if deletion was successful, we'll try to find the user again
+
             var checkUser = await _supabase.From<User>()
                 .Filter("id", Supabase.Postgrest.Constants.Operator.Equals, userIdString)
                 .Get();
-                
-            bool deletionSuccessful = checkUser.Models.Count == 0;
+            bool deletionSuccessful = checkUser?.Models?.Count == 0;
 
             if (!deletionSuccessful)
             {
@@ -561,21 +740,16 @@ public class AuthController : ControllerBase
                 return StatusCode(500, new { success = false, message = "Failed to delete account" });
             }
 
-            // Remove session
-            Sessions.Remove(sessionId);
-            Response.Cookies.Delete("session_id");
+            // Sign the user out of cookie auth as well
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
 
-            Console.WriteLine("[DeleteAccount] Success");
+            Console.WriteLine("[DeleteAccount] Account deleted successfully");
             return Ok(new { success = true, message = "Account deleted successfully" });
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[DeleteAccount] Error: {ex.Message}");
-            Console.WriteLine($"[DeleteAccount] Error details: {ex}");
-            Console.WriteLine($"[DeleteAccount] Stack trace: {ex.StackTrace}");
-            
-            // Return a more detailed error message for debugging
-            return StatusCode(500, new { success = false, message = $"An error occurred while deleting account: {ex.Message}" });
+            Console.WriteLine($"[DeleteAccount] Error deleting account: {ex.Message}");
+            return StatusCode(500, new { success = false, message = "An error occurred while deleting account" });
         }
     }
 
@@ -620,9 +794,26 @@ public class AuthController : ControllerBase
     public record DeleteAccountRequest(
         [Required] string Password);
 
+    // User DTO for API responses (prevents Supabase serialization issues)
+    public record UserDto(
+        Guid Id,
+        string Email,
+        string Username,
+        string FirstName,
+        string LastName,
+        string CookingLevel,
+        bool IsAdmin,
+        DateTime CreatedAt,
+        string? Bio,
+        string? FavoriteCuisine,
+        string? Location,
+        string? ProfileImageUrl,
+        string MemberSince,
+        bool IsAdminSession);
+
     // User model for Supabase
     [Table("users")]
-    public class User : BaseModel
+    public new class User : BaseModel
     {
         [PrimaryKey("id")]
         public Guid Id { get; set; }
@@ -633,11 +824,13 @@ public class AuthController : ControllerBase
         [Column("password_hash")] public string PasswordHash { get; set; } = string.Empty;
         [Column("cooking_level")] public string CookingLevel { get; set; } = string.Empty;
         [Column("is_admin")] public bool IsAdmin { get; set; }
+        [Column("admin_security_code")] public string? AdminSecurityCode { get; set; }
         [Column("created_at")] public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         [Column("bio")] public string? Bio { get; set; }
         [Column("favorite_cuisine")] public string? FavoriteCuisine { get; set; }
         [Column("profile_image_url")] public string? ProfileImageUrl { get; set; }
         [Column("location")] public string? Location { get; set; }
+        [Column("active")] public bool Active { get; set; } = true;
     }
     
     // DTO for user updates to avoid created_at issues
@@ -672,5 +865,44 @@ public class AuthController : ControllerBase
         public Guid Id { get; set; }
         [Column("user_id")] public string UserId { get; set; } = string.Empty;
         [Column("recipe_id")] public string RecipeId { get; set; } = string.Empty;
+    }
+
+    // Model for user_profiles table
+    [Table("user_profiles")]
+    public class UserProfile : BaseModel
+    {
+        [PrimaryKey("id")]
+        public Guid Id { get; set; }
+        [Column("last_login")] public DateTime? LastLogin { get; set; }
+        [Column("first_name")] public string? FirstName { get; set; }
+        [Column("last_name")] public string? LastName { get; set; }
+        [Column("username")] public string? Username { get; set; }
+        [Column("favorite_cuisine")] public string? FavoriteCuisine { get; set; }
+        [Column("location")] public string? Location { get; set; }
+        [Column("bio")] public string? Bio { get; set; }
+        [Column("admin_verified")] public bool AdminVerified { get; set; } = false;
+        [Column("active")] public bool Active { get; set; } = true;
+        [Column("cooking_level")] public string CookingLevel { get; set; } = "Beginner";
+        [Column("created_at")] public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        [Column("updated_at")] public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+    }
+
+    [Table("user_sessions")]
+    public class UserSession : BaseModel
+    {
+        [Column("session_id")]
+        public string SessionId { get; set; } = Guid.NewGuid().ToString();
+
+        [Column("user_id")]
+        public Guid UserId { get; set; }
+
+        [Column("is_admin")]
+        public bool IsAdmin { get; set; }
+
+        [Column("expires_at")]
+        public DateTime ExpiresAt { get; set; }
+
+        [Column("created_at")]
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 } 

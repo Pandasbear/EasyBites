@@ -49,6 +49,55 @@
     margin: 0;
   }
   
+  /* Star Rating */
+  .rating-input {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .star-rating {
+    display: flex;
+    gap: 0.25rem;
+  }
+  
+  .star {
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  
+  .star:hover {
+    transform: scale(1.2);
+  }
+  
+  .star.hover,
+  .star.selected {
+    color: #ffc107;
+  }
+  
+  .rating-text {
+    font-size: 0.9rem;
+    color: #6c757d;
+  }
+  
+  /* Success Message */
+  .feedback-success {
+    text-align: center;
+    padding: 2rem;
+  }
+  
+  .feedback-success h3 {
+    color: #27ae60;
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+  }
+  
+  .feedback-success p {
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+  }
+  
   /* Community Feedback */
   .community-feedback {
     background: white;
@@ -108,6 +157,14 @@
   .rating {
     color: #ffc107;
     font-size: 0.9rem;
+  }
+  
+  /* Form validation */
+  .error-message {
+    color: #e74c3c;
+    font-size: 0.85rem;
+    margin-top: 0.25rem;
+    display: none;
   }
   
   /* Responsive */

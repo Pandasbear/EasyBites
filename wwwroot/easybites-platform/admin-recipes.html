@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recipe Management - EasyBites Admin</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/admin.css">
+</head>
+<body>
+    <header class="admin-header">
+        <nav class="admin-navbar">
+            <div class="nav-container">
+                <div class="nav-brand">
+                    <h1>🍽️ EasyBites Admin</h1>
+                </div>
+                <div class="admin-user">
+                    <span>Welcome, Admin</span>
+                    <a href="admin-login.html" class="logout-btn">Logout</a>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <div class="admin-layout">
+        <aside class="admin-sidebar">
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="admin-dashboard.html" class="nav-item">📊 Dashboard</a></li>
+                    <li><a href="admin-recipes.html" class="nav-item active">🍳 Recipe Management</a></li>
+                    <li><a href="admin-users.html" class="nav-item">👥 User Management</a></li>
+                    <li><a href="admin-feedback.html" class="nav-item">💬 Feedback</a></li>
+                    <li><a href="admin-reports.html" class="nav-item">📈 Reports</a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <main class="admin-main">
+            <div class="admin-content">
+                <div class="page-header">
+                    <h1>Recipe Management</h1>
+                    <p>Review and manage all recipes in the system</p>
+                </div>
+
+                <div class="admin-controls">
+                    <div class="filter-controls">
+                        <select id="statusFilter" class="filter-select">
+                            <option value="">All Statuses</option>
+                            <option value="pending">Pending</option>
+                            <option value="approved">Approved</option>
+                            <option value="rejected">Rejected</option>
+                        </select>
+                        <button id="refreshBtn" class="btn btn-secondary">Refresh</button>
+                    </div>
+                    <div class="search-controls">
+                        <input type="text" id="searchInput" placeholder="Search recipes..." class="search-input">
+                        <button id="searchBtn" class="btn btn-primary">Search</button>
+                    </div>
+                </div>
+
+                <div class="admin-table-container">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Recipe Name</th>
+                                <th>Author</th>
+                                <th>Category</th>
+                                <th>Status</th>
+                                <th>Submitted</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recipesTableBody">
+                            <tr>
+                                <td colspan="6" class="loading-row">Loading recipes...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="pagination-controls">
+                    <button id="prevPageBtn" class="btn btn-secondary" disabled>Previous</button>
+                    <span id="pageInfo">Page 1 of 1</span>
+                    <button id="nextPageBtn" class="btn btn-secondary" disabled>Next</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Recipe Details Modal -->
+    <div id="recipeModal" class="modal">
+        <div class="modal-content large">
+            <div class="modal-header">
+                <h2>Recipe Details</h2>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body" id="recipeModalBody">
+                <form id="recipeDetailForm" class="recipe-detail-form">
+                    <input type="hidden" id="recipeId">
+                    <div class="form-group">
+                        <label for="recipeName">Recipe Name</label>
+                        <input type="text" id="recipeName" name="name" required disabled>
+                    </div>
+                    <div class="form-group">
+                        <label for="recipeDescription">Description</label>
+                        <textarea id="recipeDescription" name="description" rows="3" disabled></textarea>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="recipeCategory">Category</label>
+                            <input type="text" id="recipeCategory" name="category" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label for="recipeDifficulty">Difficulty</label>
+                            <select id="recipeDifficulty" name="difficulty" disabled>
+                                <option value="Easy">Easy</option>
+                                <option value="Medium">Medium</option>
+                                <option value="Hard">Hard</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="recipePrepTime">Prep Time (minutes)</label>
+                            <input type="number" id="recipePrepTime" name="prep_time" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label for="recipeCookTime">Cook Time (minutes)</label>
+                            <input type="number" id="recipeCookTime" name="cook_time" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label for="recipeServings">Servings</label>
+                            <input type="number" id="recipeServings" name="servings" disabled>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="recipeIngredients">Ingredients (one per line)</label>
+                        <textarea id="recipeIngredients" name="ingredients" rows="5" disabled></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="recipeInstructions">Instructions (one per line)</label>
+                        <textarea id="recipeInstructions" name="instructions" rows="8" disabled></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="recipeTips">Tips (optional)</label>
+                        <textarea id="recipeTips" name="tips" rows="3" disabled></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="recipeNutritionInfo">Nutrition Info (optional)</label>
+                        <textarea id="recipeNutritionInfo" name="nutrition_info" rows="3" disabled></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="recipeDietaryOptions">Dietary Options (comma-separated)</label>
+                        <input type="text" id="recipeDietaryOptions" name="dietary_options" disabled>
+                    </div>
+                    <div class="form-group">
+                        <label for="recipeAuthor">Author</label>
+                        <input type="text" id="recipeAuthor" name="author" >
+                    </div>
+                    <div class="form-group">
+                        <label for="recipeStatus">Status</label>
+                        <select id="recipeStatus" name="status" disabled>
+                            <option value="pending">Pending</option>
+                            <option value="approved">Approved</option>
+                            <option value="rejected">Rejected</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="recipeSubmittedAt">Submitted At</label>
+                        <input type="text" id="recipeSubmittedAt" name="submitted_at" disabled>
+                    </div>
+                    <div class="form-group">
+                        <label for="recipeImageUrl">Image URL</label>
+                        <input type="url" id="recipeImageUrl" name="image_url" disabled>
+                        <button type="button" id="generateImageBtn" class="btn btn-sm btn-primary mt-1" disabled>Generate/Regenerate Image</button>
+                    </div>
+                    <div class="loading-overlay" id="recipeFormLoadingOverlay" style="display: none;">
+                        <div class="spinner"></div>
+                        <p>Loading recipe details...</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" id="editRecipeBtn" class="btn btn-primary">Edit</button>
+                        <button type="submit" id="saveRecipeBtn" class="btn btn-success" style="display: none;">Save Changes</button>
+                        <button type="button" id="cancelEditBtn" class="btn btn-secondary" style="display: none;">Cancel</button>
+                        <button type="button" id="approveBtn" class="btn btn-success">Approve</button>
+                        <button type="button" id="rejectBtn" class="btn btn-warning">Reject</button>
+                        <button type="button" id="deleteBtn" class="btn btn-danger">Delete</button>
+                        <button type="button" class="btn btn-secondary modal-close">Close</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="scripts/main.js"></script>
+    <script src="scripts/admin.js"></script>
+    <script src="scripts/admin-recipes.js?v=11"></script>
+</body>
+</html> 

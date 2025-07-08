@@ -147,43 +147,100 @@
   /* Form Actions */
   .form-actions {
     display: flex;
-    gap: 1rem;
     justify-content: flex-end;
-    padding-top: 2rem;
-    border-top: 1px solid #e1e8ed;
+    gap: 10px;
+    margin-top: 30px;
   }
   
   /* Responsive */
   @media (max-width: 768px) {
     .recipe-form {
-      padding: 2rem;
-      margin: 0 1rem;
+      padding: 15px;
     }
   
     .form-actions {
-      flex-direction: column;
+      flex-direction: column-reverse;
     }
   
     .ingredient-item,
     .instruction-item {
       flex-direction: column;
-      gap: 0.5rem;
+      align-items: flex-start;
     }
   
     .remove-ingredient,
     .remove-instruction {
-      align-self: flex-end;
-      margin-top: 0;
+      margin-left: 0;
+      margin-top: 10px;
+      width: 100%;
     }
   }
   
   @media (max-width: 480px) {
     .recipe-form {
-      padding: 1.5rem;
+      padding: 10px;
     }
   
     .form-section h2 {
-      font-size: 1.25rem;
+      font-size: 1.5em;
+    }
+  }
+
+  /* New style for highlighted button */
+  .btn-highlight {
+    background-color: #ff9800; /* Orange color */
+    color: #fff;
+    border-color: #ff9800;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+  }
+
+  .btn-highlight:hover {
+    background-color: #e68900; /* Slightly darker orange on hover */
+    border-color: #e68900;
+  }
+
+  .image-generation-note {
+    background-color: #fff3e0;
+    border-left: 5px solid #ff9800;
+    padding: 15px 20px;
+    margin-top: 20px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    animation: slideIn 0.5s ease-out forwards;
+  }
+
+  .image-generation-note .note-content h4 {
+    color: #e67e22;
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+  }
+
+  .image-generation-note .note-content p {
+    color: #7f8c8d;
+    margin-bottom: 0.5rem;
+    line-height: 1.6;
+  }
+
+  .image-generation-note .note-content a {
+    color: #e67e22;
+    font-weight: 500;
+    text-decoration: none;
+  }
+
+  .image-generation-note .note-content a:hover {
+    text-decoration: underline;
+  }
+
+  @keyframes slideIn {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
     }
   }
   

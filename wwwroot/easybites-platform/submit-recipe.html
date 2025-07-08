@@ -98,14 +98,26 @@
                     <div class="form-group">
                         <label for="recipeImage">Recipe Image</label>
                         <div class="file-upload">
-                            <input type="file" id="recipeImage" name="recipeImage" accept="image/*">
-                            <label for="recipeImage" class="file-upload-label">
+                            <input type="file" id="recipeImageFile" name="recipeImageFile" accept="image/*" style="display: none;">
+                            <label for="recipeImageFile" class="file-upload-label">
                                 <span class="upload-icon">📷</span>
                                 <span class="upload-text">Choose Image</span>
                             </label>
                         </div>
                         <small class="form-help">Maximum file size: 5MB. Supported formats: JPG, PNG, GIF</small>
-                        <span class="error-message" id="recipeImageError"></span>
+                        <span class="error-message" id="recipeImageFileError"></span>
+                    </div>
+
+                    <div class="form-group image-generation-section">
+                        <label>AI Image Generation</label>
+                        <button type="button" id="generateImageBtn" class="btn btn-secondary" disabled>Generate Recipe Image</button>
+                        <input type="hidden" id="recipeImageUrl" name="recipeImageUrl">
+                        <div id="imagePreview" class="image-preview mt-2" style="display: none;">
+                            <img src="" alt="Recipe Image Preview" style="max-width: 200px; height: auto; border-radius: 8px;">
+                            <button type="button" id="removeImageBtn" class="btn btn-sm btn-outline mt-1">Remove Image</button>
+                        </div>
+                        <small class="form-help">Generate a professional food image using AI. Requires recipe name and description.</small>
+                        <span class="error-message" id="recipeImageUrlError"></span>
                     </div>
                 </div>
 
@@ -178,7 +190,7 @@
                 </div>
 
                 <div class="form-actions">
-                    <button type="button" class="btn btn-outline">Save as Draft</button>
+                    <button type="button" id="saveDraftBtn" class="btn btn-outline">Save as Draft</button>
                     <button type="submit" class="btn btn-primary">Submit Recipe</button>
                 </div>
             </form>

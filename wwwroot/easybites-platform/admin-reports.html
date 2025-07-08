@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reports Management - EasyBites Admin</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/admin.css">
+</head>
+<body>
+    <header class="admin-header">
+        <nav class="admin-navbar">
+            <div class="nav-container">
+                <div class="nav-brand">
+                    <h1>🍽️ EasyBites Admin</h1>
+                </div>
+                <div class="admin-user">
+                    <span>Welcome, Admin</span>
+                    <a href="admin-login.html" class="logout-btn">Logout</a>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <div class="admin-layout">
+        <aside class="admin-sidebar">
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="admin-dashboard.html" class="nav-item">📊 Dashboard</a></li>
+                    <li><a href="admin-recipes.html" class="nav-item">🍳 Recipe Management</a></li>
+                    <li><a href="admin-users.html" class="nav-item">👥 User Management</a></li>
+                    <li><a href="admin-feedback.html" class="nav-item">💬 Feedback</a></li>
+                    <li><a href="admin-reports.html" class="nav-item active">📈 Reports</a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <main class="admin-main">
+            <div class="admin-content">
+                <div class="page-header">
+                    <h1>Reports Management</h1>
+                    <p>Handle user reports and violations</p>
+                </div>
+
+                <div class="admin-controls">
+                    <div class="filter-controls">
+                        <select id="statusFilter" class="filter-select">
+                            <option value="">All Statuses</option>
+                            <option value="pending">Pending</option>
+                            <option value="reviewed">Reviewed</option>
+                            <option value="resolved">Resolved</option>
+                            <option value="dismissed">Dismissed</option>
+                        </select>
+                        <select id="typeFilter" class="filter-select">
+                            <option value="">All Types</option>
+                            <option value="inappropriate_content">Inappropriate Content</option>
+                            <option value="spam">Spam</option>
+                            <option value="harassment">Harassment</option>
+                            <option value="copyright">Copyright Violation</option>
+                            <option value="other">Other</option>
+                        </select>
+                        <button id="refreshBtn" class="btn btn-secondary">Refresh</button>
+                    </div>
+                </div>
+
+                <div class="admin-table-container">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Report Type</th>
+                                <th>Reported Item</th>
+                                <th>Reporter</th>
+                                <th>Status</th>
+                                <th>Priority</th>
+                                <th>Submitted</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reportsTableBody">
+                            <tr>
+                                <td colspan="7" class="loading-row">Loading reports...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="pagination-controls">
+                    <button id="prevPageBtn" class="btn btn-secondary" disabled>Previous</button>
+                    <span id="pageInfo">Page 1 of 1</span>
+                    <button id="nextPageBtn" class="btn btn-secondary" disabled>Next</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Report Details Modal -->
+    <div id="reportModal" class="modal">
+        <div class="modal-content large">
+            <div class="modal-header">
+                <h2>Report Details</h2>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body" id="reportModalBody">
+                <!-- Report details will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <button id="resolveBtn" class="btn btn-success">Resolve</button>
+                <button id="dismissBtn" class="btn btn-warning">Dismiss</button>
+                <button id="escalateBtn" class="btn btn-danger">Escalate</button>
+                <button class="btn btn-secondary modal-close">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Notes Modal -->
+    <div id="notesModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add Admin Notes</h2>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <textarea id="adminNotes" placeholder="Enter admin notes..." class="notes-textarea"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button id="saveNotesBtn" class="btn btn-primary">Save Notes</button>
+                <button class="btn btn-secondary modal-close">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="scripts/main.js?v=2"></script>
+    <script src="scripts/admin.js?v=2"></script>
+    <script src="scripts/admin-reports.js?v=4"></script>
+</body>
+</html> 

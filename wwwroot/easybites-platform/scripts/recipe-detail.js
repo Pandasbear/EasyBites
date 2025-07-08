@@ -1,380 +1,420 @@
-// recipe-detail.js - Script for the recipe detail page with step-by-step experience
+// recipe-detail.js - Handles the detailed view of a single recipe
+let currentRecipe = null;
+let currentUser = null;
+let recipeProgress = null; // To store user's progress for this recipe
 
-(function() {
-    document.addEventListener('DOMContentLoaded', async () => {
-        // Get recipe ID from URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const recipeId = urlParams.get('id');
+document.addEventListener('DOMContentLoaded', async () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const recipeId = urlParams.get('id');
+    
+    if (!recipeId) {
+        document.querySelector('main').innerHTML = '<p class="error-message">Recipe ID not provided.</p>';
+        return;
+    }
+
+    try {
+        // Fetch user and recipe in parallel
+        const [userResponse, recipeResponse] = await Promise.all([
+            EasyBites.api('/api/auth/me').catch(err => {
+                console.warn('User not logged in or session expired:', err);
+                return null; // Allow recipe loading even if user is not logged in
+            }),
+            EasyBites.api(`/api/recipes/${recipeId}`)
+        ]);
+
+        currentUser = userResponse;
+        currentRecipe = recipeResponse;
         
-        if (!recipeId) {
-            window.location.href = 'recipes.html';
+        if (!currentRecipe) {
+            document.querySelector('main').innerHTML = '<p class="error-message">Recipe not found.</p>';
             return;
         }
+
+        // If user is logged in, fetch their progress for this recipe
+        if (currentUser) {
+            try {
+                recipeProgress = await EasyBites.api(`/api/recipes/progress/${recipeId}`);
+                console.log('Fetched recipe progress:', recipeProgress);
+            } catch (err) {
+                console.warn('No existing progress for this recipe, or error fetching:', err);
+                recipeProgress = { // Initialize with default values if no progress found
+                    currentInstructionStep: 0,
+                    checkedIngredients: []
+                };
+            }
+        } else {
+            // If not logged in, treat progress as non-existent
+            recipeProgress = { currentInstructionStep: 0, checkedIngredients: [] };
+        }
+
+        renderRecipeDetails(currentRecipe);
+        updateNavigation(!!currentUser);
+        initializeStepByStep();
+        setupIngredientCheckboxes();
+        setupProgressNavigation();
+
+    } catch (err) {
+        console.error('Failed to load recipe or user data:', err);
+        document.querySelector('main').innerHTML = `<p class="error-message">Failed to load recipe: ${err.message || 'Unknown error'}</p>`;
+    }
+});
+
+// Update navigation based on login state
+function updateNavigation(isLoggedIn) {
+    const navMenu = document.querySelector('.nav-menu');
+    if (!navMenu) return;
+    
+    if (isLoggedIn) {
+        // Replace Login/Register with Account and Logout
+        const loginLink = navMenu.querySelector('a[href="login.html"]');
+        const registerLink = navMenu.querySelector('a[href="register.html"]');
         
-        // Check if user is logged in
-        let currentUser = null;
-        try {
-            const userResponse = await EasyBites.api('/api/auth/me');
-            if (userResponse) {
-                currentUser = userResponse;
-                // Update navigation based on logged in state
-                updateNavigation(true);
+        if (loginLink) {
+            loginLink.setAttribute('href', 'account.html');
+            loginLink.textContent = 'My Account';
+        }
+        
+        if (registerLink) {
+            registerLink.setAttribute('href', '#');
+            registerLink.textContent = 'Logout';
+            registerLink.classList.remove('btn-primary');
+            registerLink.addEventListener('click', handleLogout);
+        }
+    }
+}
+
+// Handle logout
+async function handleLogout(e) {
+    e.preventDefault();
+    try {
+        await EasyBites.api('/api/auth/logout', { method: 'POST' });
+        window.location.href = 'recipes.html';
+    } catch (err) {
+        console.error('Logout failed:', err);
+        EasyBites.toast('Logout failed');
+    }
+}
+
+function renderRecipeDetails(recipe) {
+    document.title = `${recipe.name} - EasyBites`;
+
+    // Breadcrumb
+    const breadcrumbSpan = document.querySelector('.breadcrumb span');
+    if (breadcrumbSpan) {
+        breadcrumbSpan.textContent = recipe.name;
+    }
+
+    // Recipe Image
+    const recipeImageElement = document.querySelector('.recipe-image img');
+    if (recipeImageElement) {
+        recipeImageElement.src = recipe.imageUrl || '/placeholder.svg?height=800&width=600&text=Recipe+Image';
+        recipeImageElement.alt = recipe.name;
+    }
+
+    // Save Recipe Button
+    const saveRecipeBtn = document.querySelector('.save-recipe-btn');
+    if (saveRecipeBtn && currentUser) {
+        saveRecipeBtn.setAttribute('data-id', recipe.id);
+        // Check if recipe is already saved by the user
+        EasyBites.api(`/api/recipes/saved/${recipe.id}`)
+        .then(status => {
+            if (status && status.isSaved) {
+                saveRecipeBtn.classList.add('saved');
+                saveRecipeBtn.textContent = '❤️';
+                saveRecipeBtn.title = 'Remove from favorites';
             } else {
-                window.location.href = 'recipes.html';
-                return;
+                saveRecipeBtn.classList.remove('saved');
+                saveRecipeBtn.textContent = '🤍';
+                saveRecipeBtn.title = 'Save to favorites';
             }
-        } catch (err) {
-            console.log('User not logged in');
-            window.location.href = 'recipes.html';
-            return;
+        }).catch(err => {
+            // Unexpected error
+            console.error('Failed to get save status:', err);
+            // Fallback to unsaved state in case of unexpected error
+            saveRecipeBtn.classList.remove('saved');
+            saveRecipeBtn.textContent = '🤍';
+            saveRecipeBtn.title = 'Save to favorites';
+        });
+        saveRecipeBtn.addEventListener('click', handleSaveRecipe);
+    } else if (saveRecipeBtn) {
+        // Hide save button if user is not logged in
+        saveRecipeBtn.style.display = 'none';
+    }
+
+    // Recipe Info
+    document.querySelector('.recipe-info h1').textContent = recipe.name;
+    document.querySelector('.recipe-description').textContent = recipe.description || 'No description provided.';
+
+    // Meta Grid
+    document.querySelector('.meta-item:nth-child(1) .meta-value').textContent = `${recipe.prepTime || '--'} minutes`;
+    document.querySelector('.meta-item:nth-child(2) .meta-value').textContent = `${recipe.cookTime || '--'} minutes`;
+    document.querySelector('.meta-item:nth-child(3) .meta-value').textContent = `${recipe.servings || '--'} people`;
+    const difficultyElement = document.querySelector('.meta-item:nth-child(4) .meta-value');
+    difficultyElement.textContent = recipe.difficulty || 'Medium';
+    difficultyElement.className = `meta-value difficulty-${(recipe.difficulty || 'medium').toLowerCase()}`;
+
+    // Author Info
+    document.querySelector('.author-info h3').textContent = recipe.author || 'Unknown Chef';
+    const authorAvatar = document.querySelector('.author-avatar');
+    if (authorAvatar) {
+        authorAvatar.textContent = (recipe.author ? recipe.author[0] : 'U').toUpperCase();
+    }
+
+    // Ingredients List
+    const ingredientsList = document.querySelector('.ingredients-list');
+    ingredientsList.innerHTML = ''; // Clear existing placeholders
+    if (recipe.ingredients && recipe.ingredients.length > 0) {
+        recipe.ingredients.forEach((ingredient, index) => {
+            const li = document.createElement('li');
+            const isChecked = recipeProgress.checkedIngredients.includes(index);
+            li.innerHTML = `
+                <input type="checkbox" id="ingredient${index}" class="ingredient-checkbox" data-index="${index}" ${isChecked ? 'checked' : ''}>
+                <label for="ingredient${index}">${escapeHtml(ingredient)}</label>
+            `;
+            ingredientsList.appendChild(li);
+        });
+    } else {
+        ingredientsList.innerHTML = '<p>No ingredients listed.</p>';
+    }
+
+    // Instructions List
+    const instructionsList = document.getElementById('instructionsList');
+    instructionsList.innerHTML = ''; // Clear existing placeholders
+    if (recipe.instructions && recipe.instructions.length > 0) {
+        recipe.instructions.forEach((instruction, index) => {
+            const li = document.createElement('li');
+            li.className = 'instruction-step';
+            li.setAttribute('data-step', index + 1);
+            li.innerHTML = `
+                <div class="step-number">${index + 1}</div>
+                <div class="step-content">
+                    <p>${escapeHtml(instruction)}</p>
+                </div>
+            `;
+            instructionsList.appendChild(li);
+        });
+    } else {
+        instructionsList.innerHTML = '<p>No instructions provided.</p>';
+    }
+    
+    // Tips Section
+    const tipsGrid = document.querySelector('.tips-grid');
+    tipsGrid.innerHTML = ''; // Clear existing placeholders
+    if (recipe.tips) {
+        const tipCard = document.createElement('div');
+        tipCard.className = 'tip-card';
+        tipCard.innerHTML = `
+            <h4>💡 Chef's Tip</h4>
+            <p>${escapeHtml(recipe.tips)}</p>
+        `;
+        tipsGrid.appendChild(tipCard);
+    } else {
+        tipsGrid.innerHTML = '<p>No tips available.</p>';
+    }
+
+    // Initial render of instruction progress
+    updateInstructionProgressUI();
+}
+
+// Handle saving/unsaving a recipe
+async function handleSaveRecipe(e) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!currentUser) {
+        console.warn('Attempted to save/unsave recipe without authentication. Showing login prompt.');
+        showLoginPrompt(e); // Defined in main.js, or local if needed
+        return;
+    }
+
+    const button = e.currentTarget;
+    const recipeId = button.getAttribute('data-id');
+    const isSaved = button.classList.contains('saved');
+
+    try {
+        if (isSaved) {
+            // Unsave recipe
+            await EasyBites.api(`/api/recipes/saved/${recipeId}`, { method: 'DELETE' });
+            button.classList.remove('saved');
+            button.textContent = '🤍';
+            button.title = 'Save to favorites';
+            EasyBites.toast('Recipe removed from favorites');
+        } else {
+            // Save recipe
+            await EasyBites.api('/api/recipes/saved', {
+                method: 'POST',
+                body: JSON.stringify({ recipeId: recipeId }),
+                expectedStatusCodes: [409] // Expect 409 if recipe is already saved
+            });
+            button.classList.add('saved');
+            button.textContent = '❤️';
+            button.title = 'Remove from favorites';
+            EasyBites.toast('Recipe saved to favorites');
         }
-        
-        // Load recipe details
-        try {
-            const recipe = await EasyBites.api(`/api/recipes/${recipeId}`);
-            renderRecipeDetails(recipe);
-            
-            // Set up save button
-            const saveButton = document.querySelector('.save-recipe-btn');
-            if (saveButton) {
-                // Check if recipe is saved
-                try {
-                    const isSavedResponse = await EasyBites.api(`/api/recipes/saved/${recipeId}`);
-                    if (isSavedResponse.isSaved) {
-                        saveButton.classList.add('saved');
-                        saveButton.textContent = '❤️';
-                        saveButton.title = 'Remove from favorites';
-                    }
-                } catch (err) {
-                    console.error('Failed to check if recipe is saved:', err);
-                }
-                
-                // Add click handler
-                saveButton.addEventListener('click', async (e) => {
-                    e.preventDefault();
-                    
-                    const isSaved = saveButton.classList.contains('saved');
-                    
-                    try {
-                        if (isSaved) {
-                            // Unsave recipe
-                            await EasyBites.api(`/api/recipes/saved/${recipeId}`, { method: 'DELETE' });
-                            saveButton.classList.remove('saved');
-                            saveButton.textContent = '🤍';
-                            saveButton.title = 'Save to favorites';
-                            EasyBites.toast('Recipe removed from favorites');
-                        } else {
-                            // Save recipe
-                            await EasyBites.api('/api/recipes/saved', {
-                                method: 'POST',
-                                body: JSON.stringify({ recipeId })
-                            });
-                            saveButton.classList.add('saved');
-                            saveButton.textContent = '❤️';
-                            saveButton.title = 'Remove from favorites';
-                            EasyBites.toast('Recipe saved to favorites');
-                        }
-                    } catch (err) {
-                        console.error('Failed to save/unsave recipe:', err);
-                        EasyBites.toast('Failed to update favorites');
-                    }
-                });
-            }
-            
-            // Initialize step-by-step experience
-            initializeStepByStep();
-        } catch (err) {
-            console.error('Failed to load recipe:', err);
-            EasyBites.toast('Failed to load recipe details');
+    } catch (err) {
+        console.error('Failed to save/unsave recipe:', err);
+        // Check if the error is due to the recipe already being saved (409 Conflict)
+        if (err.status === 409) {
+            EasyBites.toast('Recipe is already in your favorites.');
+            button.classList.add('saved'); // Ensure button shows as saved
+            button.textContent = '❤️';
+            button.title = 'Remove from favorites';
+        } else {
+            EasyBites.toast('Failed to update favorites: ' + (err.message || ''));
+        }
+    }
+}
+
+// Show login prompt modal (can be reused from recipes.js or defined here)
+function showLoginPrompt(e) {
+    // Re-use logic from main.js or recipes.js if available
+    // For now, a simple toast
+    EasyBites.toast('Please log in to save recipes and track your progress!', 'info'); // Replaced alert with EasyBites.toast
+    window.location.href = 'login.html';
+}
+
+// --- New Functions for Recipe Progress ---
+
+// Initializes the step-by-step functionality
+function initializeStepByStep() {
+    const totalSteps = currentRecipe.instructions ? currentRecipe.instructions.length : 0;
+    document.getElementById('totalStepsDisplay').textContent = totalSteps;
+    updateInstructionProgressUI();
+}
+
+// Updates the UI based on current instruction step
+function updateInstructionProgressUI() {
+    const instructions = document.querySelectorAll('.instruction-step');
+    const totalSteps = instructions.length;
+    const currentStep = recipeProgress.currentInstructionStep; // Use the stored progress
+
+    instructions.forEach((stepEl, index) => {
+        const stepNumber = parseInt(stepEl.getAttribute('data-step'));
+        if (stepNumber === currentStep) {
+            stepEl.classList.add('active');
+            stepEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        } else {
+            stepEl.classList.remove('active');
+        }
+
+        if (stepNumber < currentStep) {
+            stepEl.classList.add('completed');
+        } else {
+            stepEl.classList.remove('completed');
         }
     });
-    
-    // Update navigation based on login state
-    function updateNavigation(isLoggedIn) {
-        const navMenu = document.querySelector('.nav-menu');
-        if (!navMenu) return;
-        
-        if (isLoggedIn) {
-            // Replace Login/Register with Account and Logout
-            const loginLink = navMenu.querySelector('a[href="login.html"]');
-            const registerLink = navMenu.querySelector('a[href="register.html"]');
-            
-            if (loginLink) {
-                loginLink.setAttribute('href', 'account.html');
-                loginLink.textContent = 'My Account';
-            }
-            
-            if (registerLink) {
-                registerLink.setAttribute('href', '#');
-                registerLink.textContent = 'Logout';
-                registerLink.classList.remove('btn-primary');
-                registerLink.addEventListener('click', handleLogout);
-            }
+
+    // Update progress bar
+    const progressBarFill = document.querySelector('.progress-fill');
+    const currentStepDisplay = document.getElementById('currentStepDisplay');
+    const progressPercentage = totalSteps > 0 ? (currentStep / totalSteps) * 100 : 0;
+    progressBarFill.style.width = `${progressPercentage}%`;
+    currentStepDisplay.textContent = `Step ${currentStep}`;
+
+    // Update navigation buttons
+    document.getElementById('prevStepBtn').disabled = currentStep <= 1;
+    document.getElementById('nextStepBtn').disabled = currentStep >= totalSteps;
+}
+
+// Sets up event listeners for instruction navigation buttons
+function setupProgressNavigation() {
+    document.getElementById('prevStepBtn').addEventListener('click', () => navigateInstruction(-1));
+    document.getElementById('nextStepBtn').addEventListener('click', () => navigateInstruction(1));
+}
+
+// Navigates instructions and updates progress
+async function navigateInstruction(direction) {
+    if (!currentUser) {
+        showLoginPrompt();
+        return; // Prevent navigating if not logged in
+    }
+
+    const totalSteps = currentRecipe.instructions ? currentRecipe.instructions.length : 0;
+    let newStep = recipeProgress.currentInstructionStep + direction;
+
+    // Ensure newStep is within bounds
+    newStep = Math.max(0, Math.min(newStep, totalSteps));
+
+    if (newStep === recipeProgress.currentInstructionStep) {
+        return; // No change needed
+    }
+
+    recipeProgress.currentInstructionStep = newStep;
+    updateInstructionProgressUI();
+    await saveRecipeProgress();
+}
+
+// Sets up event listeners for ingredient checkboxes
+function setupIngredientCheckboxes() {
+    const checkboxes = document.querySelectorAll('.ingredient-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', handleIngredientCheck);
+    });
+}
+
+// Handles ingredient checkbox change
+async function handleIngredientCheck(e) {
+    if (!currentUser) {
+        showLoginPrompt();
+        e.target.checked = !e.target.checked; // Revert checkbox state
+        return; // Prevent update if not logged in
+    }
+
+    const index = parseInt(e.target.getAttribute('data-index'));
+    if (e.target.checked) {
+        if (!recipeProgress.checkedIngredients.includes(index)) {
+            recipeProgress.checkedIngredients.push(index);
+        }
+    } else {
+        const i = recipeProgress.checkedIngredients.indexOf(index);
+        if (i > -1) {
+            recipeProgress.checkedIngredients.splice(i, 1);
         }
     }
-    
-    // Handle logout
-    async function handleLogout(e) {
-        e.preventDefault();
-        try {
-            await EasyBites.api('/api/auth/logout', { method: 'POST' });
-            window.location.href = 'recipes.html';
-        } catch (err) {
-            console.error('Logout failed:', err);
-            EasyBites.toast('Logout failed');
-        }
+    await saveRecipeProgress();
+}
+
+// Saves the current recipe progress to the backend
+async function saveRecipeProgress() {
+    if (!currentUser) {
+        console.warn('Not logged in. Cannot save recipe progress.');
+        return;
     }
-    
-    // Render recipe details
-    function renderRecipeDetails(recipe) {
-        // Update page title
-        document.title = `${recipe.name} - EasyBites`;
-        
-        // Update breadcrumb
-        const breadcrumb = document.querySelector('.breadcrumb span');
-        if (breadcrumb) {
-            breadcrumb.textContent = recipe.name;
-        }
-        
-        // Update recipe image
-        const recipeImage = document.querySelector('.recipe-image img');
-        if (recipeImage) {
-            recipeImage.src = recipe.imageUrl || 'https://via.placeholder.com/800x600?text=Recipe+Image';
-            recipeImage.alt = recipe.name;
-        }
-        
-        // Update recipe header info
-        const recipeTitle = document.querySelector('.recipe-info h1');
-        if (recipeTitle) {
-            recipeTitle.textContent = recipe.name;
-        }
-        
-        const recipeDescription = document.querySelector('.recipe-description');
-        if (recipeDescription) {
-            recipeDescription.textContent = recipe.description || '';
-        }
-        
-        // Update meta information
-        const metaItems = document.querySelectorAll('.meta-item');
-        if (metaItems.length >= 4) {
-            // Prep Time
-            const prepTimeValue = metaItems[0].querySelector('.meta-value');
-            if (prepTimeValue) {
-                prepTimeValue.textContent = `${recipe.prepTime} minutes`;
-            }
-            
-            // Cook Time
-            const cookTimeValue = metaItems[1].querySelector('.meta-value');
-            if (cookTimeValue) {
-                cookTimeValue.textContent = `${recipe.cookTime} minutes`;
-            }
-            
-            // Servings
-            const servingsValue = metaItems[2].querySelector('.meta-value');
-            if (servingsValue) {
-                servingsValue.textContent = `${recipe.servings} people`;
-            }
-            
-            // Difficulty
-            const difficultyValue = metaItems[3].querySelector('.meta-value');
-            if (difficultyValue) {
-                const difficultyClass = recipe.difficulty ? recipe.difficulty.toLowerCase() : 'medium';
-                const difficultyIcon = difficultyClass === 'easy' ? '🟢' : difficultyClass === 'medium' ? '🟡' : '🔴';
-                
-                difficultyValue.className = `meta-value difficulty-${difficultyClass}`;
-                difficultyValue.textContent = `${difficultyIcon} ${recipe.difficulty}`;
-            }
-        }
-        
-        // Update author info
-        const authorName = document.querySelector('.author-info h3');
-        if (authorName) {
-            authorName.textContent = recipe.author || 'Anonymous';
-        }
-        
-        const authorAvatar = document.querySelector('.author-avatar');
-        if (authorAvatar && recipe.author) {
-            // Set first letter of author name as avatar
-            authorAvatar.textContent = recipe.author.charAt(0).toUpperCase();
-        }
-        
-        // Render ingredients
-        const ingredientsList = document.querySelector('.ingredients-list');
-        if (ingredientsList && Array.isArray(recipe.ingredients)) {
-            ingredientsList.innerHTML = recipe.ingredients.map((ingredient, index) => `
-                <li>
-                    <input type="checkbox" id="ingredient${index}" class="ingredient-checkbox">
-                    <label for="ingredient${index}">${ingredient}</label>
-                </li>
-            `).join('');
-        }
-        
-        // Render instructions
-        const instructionsList = document.querySelector('.instructions-list');
-        if (instructionsList && Array.isArray(recipe.instructions)) {
-            instructionsList.innerHTML = recipe.instructions.map((instruction, index) => `
-                <li class="instruction-step" data-step="${index + 1}">
-                    <div class="step-number">${index + 1}</div>
-                    <div class="step-content">
-                        <p>${instruction}</p>
-                    </div>
-                </li>
-            `).join('');
-        }
-        
-        // Render tips if available
-        const tipsSection = document.querySelector('.tips-section');
-        if (tipsSection) {
-            if (recipe.tips) {
-                const tipsGrid = tipsSection.querySelector('.tips-grid');
-                if (tipsGrid) {
-                    tipsGrid.innerHTML = `
-                        <div class="tip-card">
-                            <h4>💡 Chef's Tip</h4>
-                            <p>${recipe.tips}</p>
-                        </div>
-                    `;
-                }
-            } else {
-                tipsSection.style.display = 'none';
-            }
-        }
-    }
-    
-    // Initialize step-by-step experience
-    function initializeStepByStep() {
-        const instructionSteps = document.querySelectorAll('.instruction-step');
-        if (instructionSteps.length === 0) return;
-        
-        // Initially hide all steps except the first one
-        instructionSteps.forEach((step, index) => {
-            if (index > 0) {
-                step.classList.add('locked');
-            } else {
-                step.classList.add('active');
-            }
+    try {
+        // POST if new, PUT if updating existing progress
+        const method = recipeProgress.id ? 'PUT' : 'POST';
+        const url = recipeProgress.id ? `/api/recipes/progress/${recipeProgress.id}` : '/api/recipes/progress';
+
+        const body = {
+            RecipeId: currentRecipe.id,
+            CurrentInstructionStep: recipeProgress.currentInstructionStep,
+            CheckedIngredients: recipeProgress.checkedIngredients
+        };
+
+        const result = await EasyBites.api(url, {
+            method: method,
+            body: JSON.stringify(body)
         });
-        
-        // Add progress bar
-        const instructionsSection = document.querySelector('.instructions-section');
-        if (instructionsSection) {
-            // Create progress bar
-            const progressBar = document.createElement('div');
-            progressBar.className = 'recipe-progress';
-            progressBar.innerHTML = `
-                <div class="progress-bar">
-                    <div class="progress-fill" style="width: ${100 / instructionSteps.length}%"></div>
-                </div>
-                <div class="progress-text">Step 1 of ${instructionSteps.length}</div>
-            `;
-            
-            // Create navigation buttons
-            const navButtons = document.createElement('div');
-            navButtons.className = 'step-navigation';
-            navButtons.innerHTML = `
-                <button class="btn btn-outline step-prev" disabled>← Previous</button>
-                <button class="btn btn-primary step-next">Next →</button>
-            `;
-            
-            // Add elements to DOM
-            instructionsSection.insertBefore(progressBar, instructionsSection.querySelector('.instructions-list'));
-            instructionsSection.appendChild(navButtons);
-            
-            // Set up navigation functionality
-            let currentStep = 0;
-            const prevButton = navButtons.querySelector('.step-prev');
-            const nextButton = navButtons.querySelector('.step-next');
-            
-            // Next button handler
-            nextButton.addEventListener('click', () => {
-                if (currentStep < instructionSteps.length - 1) {
-                    // Mark current step as completed
-                    instructionSteps[currentStep].classList.remove('active');
-                    instructionSteps[currentStep].classList.add('completed');
-                    
-                    // Move to next step
-                    currentStep++;
-                    instructionSteps[currentStep].classList.remove('locked');
-                    instructionSteps[currentStep].classList.add('active');
-                    
-                    // Update progress bar
-                    const progressFill = progressBar.querySelector('.progress-fill');
-                    if (progressFill) {
-                        progressFill.style.width = `${((currentStep + 1) / instructionSteps.length) * 100}%`;
-                    }
-                    
-                    // Update progress text
-                    const progressText = progressBar.querySelector('.progress-text');
-                    if (progressText) {
-                        progressText.textContent = `Step ${currentStep + 1} of ${instructionSteps.length}`;
-                    }
-                    
-                    // Update button states
-                    prevButton.disabled = false;
-                    if (currentStep === instructionSteps.length - 1) {
-                        nextButton.textContent = 'Finish';
-                    }
-                    
-                    // Scroll to active step
-                    instructionSteps[currentStep].scrollIntoView({ behavior: 'smooth', block: 'center' });
-                } else {
-                    // Mark last step as completed
-                    instructionSteps[currentStep].classList.remove('active');
-                    instructionSteps[currentStep].classList.add('completed');
-                    
-                    // Show completion message
-                    const completionMessage = document.createElement('div');
-                    completionMessage.className = 'completion-message';
-                    completionMessage.innerHTML = `
-                        <div class="completion-content">
-                            <h2>🎉 Recipe Completed!</h2>
-                            <p>Congratulations! You've successfully completed this recipe.</p>
-                            <div class="completion-actions">
-                                <a href="recipes.html" class="btn btn-primary">Find More Recipes</a>
-                            </div>
-                        </div>
-                    `;
-                    instructionsSection.appendChild(completionMessage);
-                    
-                    // Hide navigation buttons
-                    navButtons.style.display = 'none';
-                }
-            });
-            
-            // Previous button handler
-            prevButton.addEventListener('click', () => {
-                if (currentStep > 0) {
-                    // Restore current step to locked
-                    instructionSteps[currentStep].classList.remove('active');
-                    instructionSteps[currentStep].classList.add('locked');
-                    
-                    // Move to previous step
-                    currentStep--;
-                    instructionSteps[currentStep].classList.remove('completed');
-                    instructionSteps[currentStep].classList.add('active');
-                    
-                    // Update progress bar
-                    const progressFill = progressBar.querySelector('.progress-fill');
-                    if (progressFill) {
-                        progressFill.style.width = `${((currentStep + 1) / instructionSteps.length) * 100}%`;
-                    }
-                    
-                    // Update progress text
-                    const progressText = progressBar.querySelector('.progress-text');
-                    if (progressText) {
-                        progressText.textContent = `Step ${currentStep + 1} of ${instructionSteps.length}`;
-                    }
-                    
-                    // Update button states
-                    nextButton.textContent = 'Next →';
-                    if (currentStep === 0) {
-                        prevButton.disabled = true;
-                    }
-                    
-                    // Scroll to active step
-                    instructionSteps[currentStep].scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
-            });
+
+        // Update recipeProgress ID if it was a new creation
+        if (method === 'POST' && result && result.id) {
+            recipeProgress.id = result.id;
         }
+        console.log('Recipe progress saved:', result);
+    } catch (err) {
+        console.error('Failed to save recipe progress:', err);
+        EasyBites.toast('Failed to save progress: ' + (err.message || ''));
     }
-})();
+}
+
+// Helper for HTML escaping
+function escapeHtml(text) {
+    const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+    return text.replace(/[&<>"]'/g, function(m) { return map[m]; });
+}

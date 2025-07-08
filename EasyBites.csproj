@@ -11,6 +11,13 @@
   <ItemGroup>
     <PackageReference Include="Supabase" Version="1.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.4" />
+    <PackageReference Include="Google.Cloud.AIPlatform.V1" Version="3.1.0" />
+    <PackageReference Include="Google.Apis.Auth" Version="1.68.0" />
+  </ItemGroup>
+
+  <!-- Copy service account keys (if any) from Secrets folder to output so runtime can discover them -->
+  <ItemGroup>
+    <None Include="Secrets\*.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project> 

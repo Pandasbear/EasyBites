@@ -90,17 +90,19 @@
                     <button class="close-modal" data-close="passwordModal">&times;</button>
                     <h2>Change Password</h2>
                     <form id="passwordForm" class="account-form" novalidate>
+                        <!-- Hidden username field for accessibility/autofill -->
+                        <input type="text" id="passwordUsername" name="passwordUsername" autocomplete="username" style="display:none;" aria-hidden="true">
                         <div class="form-group">
                             <label for="currentPassword">Current Password *</label>
-                            <input type="password" id="currentPassword" name="currentPassword" required>
+                            <input type="password" id="currentPassword" name="currentPassword" required autocomplete="current-password">
                         </div>
                         <div class="form-group">
                             <label for="newPassword">New Password *</label>
-                            <input type="password" id="newPassword" name="newPassword" required>
+                            <input type="password" id="newPassword" name="newPassword" required autocomplete="new-password">
                         </div>
                         <div class="form-group">
                             <label for="confirmPassword">Confirm New Password *</label>
-                            <input type="password" id="confirmPassword" name="confirmPassword" required>
+                            <input type="password" id="confirmPassword" name="confirmPassword" required autocomplete="new-password">
                         </div>
                         <button type="submit" class="btn btn-primary">Update Password</button>
                     </form>
@@ -114,9 +116,11 @@
                     <h2>Delete Account</h2>
                     <p class="mb-1">Once you delete your account, there is no going back.</p>
                     <form id="deleteForm" class="account-form" novalidate>
+                        <!-- Hidden username field for accessibility/autofill -->
+                        <input type="text" id="deleteUsername" name="deleteUsername" autocomplete="username" style="display:none;" aria-hidden="true">
                         <div class="form-group">
-                            <label for="deletePassword">Confirm Password *</label>
-                            <input type="password" id="deletePassword" name="deletePassword" required>
+                            <label for="deletePassword">Enter Password to Confirm</label>
+                            <input type="password" id="deletePassword" name="deletePassword" required autocomplete="new-password">
                         </div>
                         <button type="submit" class="btn btn-warning">Delete My Account</button>
                     </form>

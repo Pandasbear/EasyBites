@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feedback Management - EasyBites Admin</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/admin.css">
+</head>
+<body>
+    <header class="admin-header">
+        <nav class="admin-navbar">
+            <div class="nav-container">
+                <div class="nav-brand">
+                    <h1>🍽️ EasyBites Admin</h1>
+                </div>
+                <div class="admin-user">
+                    <span>Welcome, Admin</span>
+                    <a href="admin-login.html" class="logout-btn">Logout</a>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <div class="admin-layout">
+        <aside class="admin-sidebar">
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="admin-dashboard.html" class="nav-item">📊 Dashboard</a></li>
+                    <li><a href="admin-recipes.html" class="nav-item">🍳 Recipe Management</a></li>
+                    <li><a href="admin-users.html" class="nav-item">👥 User Management</a></li>
+                    <li><a href="admin-feedback.html" class="nav-item active">💬 Feedback</a></li>
+                    <li><a href="admin-reports.html" class="nav-item">📈 Reports</a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <main class="admin-main">
+            <div class="admin-content">
+                <div class="page-header">
+                    <h1>Feedback Management</h1>
+                    <p>Review and respond to user feedback</p>
+                </div>
+
+                <div class="admin-controls">
+                    <div class="filter-controls">
+                        <select id="statusFilter" class="filter-select">
+                            <option value="">All Statuses</option>
+                            <option value="new">New</option>
+                            <option value="reviewed">Reviewed</option>
+                            <option value="responded">Responded</option>
+                        </select>
+                        <select id="typeFilter" class="filter-select">
+                            <option value="">All Types</option>
+                            <option value="suggestion">Suggestion</option>
+                            <option value="bug">Bug Report</option>
+                            <option value="compliment">Compliment</option>
+                            <option value="complaint">Complaint</option>
+                            <option value="feature">Feature Request</option>
+                            <option value="other">Other</option>
+                        </select>
+                        <select id="ratingFilter" class="filter-select">
+                            <option value="">All Ratings</option>
+                            <option value="5">⭐⭐⭐⭐⭐ (5 stars)</option>
+                            <option value="4">⭐⭐⭐⭐ (4 stars)</option>
+                            <option value="3">⭐⭐⭐ (3 stars)</option>
+                            <option value="2">⭐⭐ (2 stars)</option>
+                            <option value="1">⭐ (1 star)</option>
+                            <option value="0">No rating</option>
+                        </select>
+                        <button id="refreshBtn" class="btn btn-secondary">Refresh</button>
+                    </div>
+                </div>
+
+                <div class="admin-table-container">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>From</th>
+                                <th>Type</th>
+                                <th>Subject</th>
+                                <th>Rating</th>
+                                <th>Status</th>
+                                <th>Submitted</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="feedbackTableBody">
+                            <tr>
+                                <td colspan="7" class="loading-row">Loading feedback...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="pagination-controls">
+                    <button id="prevPageBtn" class="btn btn-secondary" disabled>Previous</button>
+                    <span id="pageInfo">Page 1 of 1</span>
+                    <button id="nextPageBtn" class="btn btn-secondary" disabled>Next</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Feedback Details Modal -->
+    <div id="feedbackModal" class="modal">
+        <div class="modal-content large">
+            <div class="modal-header">
+                <h2>Feedback Details</h2>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body" id="feedbackModalBody">
+                <!-- Feedback details will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <button id="markReviewedBtn" class="btn btn-info">Mark as Reviewed</button>
+                <button id="respondBtn" class="btn btn-primary">Respond</button>
+                <button class="btn btn-secondary modal-close">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Response Modal -->
+    <div id="responseModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Respond to Feedback</h2>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <textarea id="responseText" placeholder="Enter your response..." class="response-textarea"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button id="sendResponseBtn" class="btn btn-primary">Send Response</button>
+                <button class="btn btn-secondary modal-close">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="scripts/main.js"></script>
+    <script src="scripts/admin.js"></script>
+    <script src="scripts/admin-feedback.js"></script>
+</body>
+</html> 

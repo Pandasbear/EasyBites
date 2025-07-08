@@ -2,6 +2,7 @@ using Supabase.Postgrest.Models;
 using Supabase.Postgrest.Attributes;
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace EasyBites.Models;
 
@@ -29,6 +30,10 @@ public class Recipe : BaseModel
     [Column("submitted_at")] public DateTime SubmittedAt { get; set; }
     [Column("status")] public string Status { get; set; } = string.Empty;
 
-    [Column("total_time")] public int? TotalTime { get; set; }
+    [Column("total_time", ignoreOnInsert: true, ignoreOnUpdate: true)]
+    [JsonIgnore]
+    public int? TotalTime { get; set; }
     [Column("user_id")] public string? UserId { get; set; }
+    [Column("image_url")] public string? ImageUrl { get; set; }
+    [Column("is_draft")] public bool IsDraft { get; set; } = false;
 } 

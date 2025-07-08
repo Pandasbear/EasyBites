@@ -6,33 +6,38 @@
     let savedRecipesIds = [];
     
   document.addEventListener('DOMContentLoaded', async () => {
+        console.log('[recipes.js] DOMContentLoaded fired.');
         const recipesGrid = document.getElementById('recipesGrid');
+        console.log('[recipes.js] recipesGrid element:', recipesGrid);
         if (!recipesGrid) return;
 
-        // Check if user is logged in
         try {
             const userResponse = await EasyBites.api('/api/auth/me');
             if (userResponse) {
                 currentUser = userResponse;
                 updateNavigation(true);
-                
-                // Get user's saved recipes
+                console.log('[recipes.js] User authenticated:', currentUser);
+                console.log('[recipes.js] Document cookies:', document.cookie);
+
                 try {
                     const savedRecipes = await EasyBites.api('/api/recipes/saved');
                     savedRecipesIds = savedRecipes.map(recipe => recipe.id);
+                    console.log('[recipes.js] Saved recipes loaded:', savedRecipesIds.length);
                 } catch (err) {
-                    console.error('Failed to load saved recipes:', err);
+                    console.error('Failed to load saved recipes (post-auth):', err);
                 }
             } else {
                 updateNavigation(false);
+                console.log('[recipes.js] User not authenticated via /api/auth/me.');
             }
         } catch (err) {
-            console.log('User not logged in');
+            console.log('User not logged in or session expired on /api/auth/me call:', err);
             updateNavigation(false);
         }
-        
+
         // Load recipes
-    try {
+        console.log('[recipes.js] Attempting to load recipes...');
+        try {
       const recipes = await EasyBites.api('/api/recipes');
             if (recipes.length > 0) {
                 renderRecipes(recipes, recipesGrid);
@@ -94,6 +99,9 @@
         recipes.forEach(recipe => {
             const isSaved = savedRecipesIds.includes(recipe.id);
             
+            // Determine if recipe already has a real image (not a placeholder)
+            const hasRealImage = recipe.imageUrl && !/placeholder\.com/.test(recipe.imageUrl);
+            
             // Create recipe card
             const card = document.createElement('div');
             card.className = 'recipe-card';
@@ -116,7 +124,8 @@
             // Build card content
             card.innerHTML = `
                 <div class="recipe-image">
-                    <img src="${recipe.imageUrl || 'https://via.placeholder.com/300x200?text=Recipe'}" alt="${recipe.name}">
+                    <img src="${hasRealImage ? recipe.imageUrl : 'https://via.placeholder.com/300x200?text=Loading...'}" alt="${recipe.name}">
+                    ${!hasRealImage ? '<div class="img-loading-overlay">⏳</div>' : ''}
                 </div>
                 <div class="recipe-content">
                     <div class="recipe-header">
@@ -152,6 +161,11 @@
                     recipeLink.addEventListener('click', showLoginPrompt);
                 }
             }
+            
+            // If recipe lacks a real image, trigger lazy generation
+            if (!hasRealImage) {
+                triggerLazyImageGeneration(recipe.id, card);
+            }
         });
     }
     
@@ -159,7 +173,15 @@
     async function handleSaveRecipe(e) {
         e.preventDefault();
         e.stopPropagation();
-        
+
+        console.log('[recipes.js] handleSaveRecipe called. Current User:', currentUser);
+
+        if (!currentUser) {
+            console.warn('Attempted to save/unsave recipe without authentication. Showing login prompt.');
+            showLoginPrompt(e);
+            return;
+        }
+
         const button = e.currentTarget;
         const recipeId = button.getAttribute('data-id');
         const isSaved = button.classList.contains('saved');
@@ -340,5 +362,32 @@
                 <p>Please try again later.</p>
             </div>
         `;
+    }
+    
+    // Trigger backend AI image generation and update UI once ready
+    async function triggerLazyImageGeneration(recipeId, cardElement) {
+        try {
+            const overlay = cardElement.querySelector('.img-loading-overlay');
+            const imgEl = cardElement.querySelector('img');
+
+            const response = await EasyBites.api(`/api/recipes/${recipeId}/generate-image`, {
+                method: 'POST'
+            });
+
+            if (response && response.success && response.imageUrl) {
+                // Small delay so spinner is visible
+                setTimeout(() => {
+                    imgEl.src = response.imageUrl + '?v=' + Date.now(); // cache-bust
+                    overlay?.remove();
+                }, 300);
+            } else {
+                console.warn('Image generation did not succeed for recipe', recipeId);
+                if (overlay) overlay.textContent = '❌';
+            }
+        } catch (err) {
+            console.error('Lazy image generation failed:', err);
+            const overlay = cardElement.querySelector('.img-loading-overlay');
+            if (overlay) overlay.textContent = '⚠️';
+        }
     }
 })(); 
