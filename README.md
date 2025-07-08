@@ -38,6 +38,47 @@ $ dotnet run
 
 The server listens on `https://localhost:5001` (and `http://localhost:5000`). Open the URL in your browser to view the site.
 
+## Application Capabilities
+
+Easy Bites is a feature-rich recipe platform with the following key capabilities:
+
+**For Users:**
+
+*   **Recipe Discovery:** Browse, search, and filter recipes based on various criteria (keywords, category, difficulty, cooking time).
+*   **Recipe Viewing:** View detailed recipe information, including ingredients, instructions, preparation time, cooking time, servings, tips, and nutritional information.
+*   **User Accounts:** Register, log in, and manage user profiles.
+*   **Recipe Submission:** Submit new recipes to the platform (subject to admin approval).
+*   **Saved Recipes:** Save favorite recipes for easy access.
+*   **Recipe Progress Tracking:** Track progress while cooking a recipe (e.g., current step, checked-off ingredients).
+*   **Feedback Submission:** Provide feedback on the platform or specific recipes.
+*   **Reporting:** Report inappropriate content or users.
+*   **AI-Generated Recipe Images:** View AI-generated images for recipes.
+
+**For Administrators:**
+
+*   **Dashboard:** View platform statistics (total users, total recipes, pending recipes, average ratings) and recent activities.
+*   **Recipe Management:**
+    *   View all recipes with filtering options.
+    *   Approve, reject, or edit submitted recipes.
+    *   Delete recipes.
+    *   Generate or regenerate AI recipe images.
+*   **User Management:**
+    *   View all users with search and filtering options.
+    *   Create new users.
+    *   Suspend, activate, or ban user accounts.
+*   **Feedback Management:** View, filter, and respond to user feedback.
+*   **Report Management:** View, filter, and manage user-submitted reports.
+*   **Activity Logging:** Track various actions performed on the platform.
+
+## Technical Stack
+
+*   **Backend:** ASP.NET Core 9, C#
+*   **Frontend:**
+    *   Server-rendered views using Razor (`.cshtml`)
+    *   Static assets (HTML, CSS, JavaScript) in `wwwroot/` for client-side interactions.
+*   **Database & Backend Services:** Supabase (PostgreSQL, Storage, Auth - though custom auth is implemented)
+*   **AI Image Generation:** Google Gemini AI
+
 ## Publishing for Production
 
 Publish a self-contained build for macOS (Apple Silicon):
@@ -50,4 +91,4 @@ The output will be in `bin/Release/net9.0/osx-arm64/publish/` and can be copied 
 
 ---
 
-Feel free to adapt this README to match your workflow or deployment environment. 
+This README provides a general overview. For more detailed documentation on specific functionalities, please refer to the files in the `Docs/` directory.
