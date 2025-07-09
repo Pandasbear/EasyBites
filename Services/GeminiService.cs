@@ -231,33 +231,49 @@ Keep it under 200 words and format as a single paragraph.
                 return null;
             }
 
-            var endpoint = EndpointName.FromProjectLocationPublisherModel(_projectId, _location, "google", "gemini-2.0-flash");
+            var endpoint = EndpointName.FromProjectLocationPublisherModel(_projectId, _location, "google", "gemini-1.5-pro");
 
-            var request = new GenerateContentRequest
+            // Create instance for text generation
+            var instanceStruct = new ProtobufStruct();
+            instanceStruct.Fields.Add("prompt", ProtobufValue.ForString(prompt));
+            var instanceValue = ProtobufValue.ForStruct(instanceStruct);
+
+            // Create parameters for text generation
+            var parametersStruct = new ProtobufStruct();
+            parametersStruct.Fields.Add("temperature", ProtobufValue.ForNumber(0.7));
+            parametersStruct.Fields.Add("maxOutputTokens", ProtobufValue.ForNumber(256));
+            parametersStruct.Fields.Add("topK", ProtobufValue.ForNumber(40));
+            parametersStruct.Fields.Add("topP", ProtobufValue.ForNumber(0.95));
+            var parametersValue = ProtobufValue.ForStruct(parametersStruct);
+
+            var request = new PredictRequest
             {
-                Model = endpoint.ToString(),
-                Contents =
-                {
-                    new Content
-                    {
-                        Role = "user",
-                        Parts = { new Part { Text = prompt } }
-                    }
-                },
-                GenerationConfig = new GenerationConfig
-                {
-                    Temperature = 0.7f,
-                    MaxOutputTokens = 256,
-                    TopK = 40,
-                    TopP = 0.95f
-                }
+                EndpointAsEndpointName = endpoint,
+                Instances = { instanceValue },
+                Parameters = parametersValue
             };
 
-            var response = await client.GenerateContentAsync(request);
+            var response = await client.PredictAsync(request);
             
-            if (response.Candidates.Count > 0 && response.Candidates[0].Content.Parts.Count > 0)
+            if (response.Predictions.Count > 0)
             {
-                return response.Candidates[0].Content.Parts[0].Text;
+                var prediction = response.Predictions[0];
+                if (prediction.StructValue.Fields.ContainsKey("content"))
+                {
+                    return prediction.StructValue.Fields["content"].StringValue;
+                }
+                else if (prediction.StructValue.Fields.ContainsKey("candidates"))
+                {
+                    var candidates = prediction.StructValue.Fields["candidates"].ListValue;
+                    if (candidates.Values.Count > 0)
+                    {
+                        var firstCandidate = candidates.Values[0].StructValue;
+                        if (firstCandidate.Fields.ContainsKey("content"))
+                        {
+                            return firstCandidate.Fields["content"].StringValue;
+                        }
+                    }
+                }
             }
             return null;
         }

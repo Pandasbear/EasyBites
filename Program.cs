@@ -8,6 +8,8 @@ using EasyBites.Services;
 using System;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using System.Security.Claims;
+using Microsoft.Extensions.Logging;
+using System.IO;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -109,6 +111,26 @@ builder.Services.AddControllers()
     });
 
 var app = builder.Build();
+
+// Add Google Cloud credentials debugging
+var logger = app.Services.GetRequiredService<ILogger<Program>>();
+var credentialsPath = Environment.GetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS");
+if (!string.IsNullOrEmpty(credentialsPath))
+{
+    logger.LogInformation("GOOGLE_APPLICATION_CREDENTIALS is set to: {CredentialsPath}", credentialsPath);
+    if (File.Exists(credentialsPath))
+    {
+        logger.LogInformation("Google credentials file exists and is accessible");
+    }
+    else
+    {
+        logger.LogWarning("Google credentials file does not exist at: {CredentialsPath}", credentialsPath);
+    }
+}
+else
+{
+    logger.LogWarning("GOOGLE_APPLICATION_CREDENTIALS environment variable is not set");
+}
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
