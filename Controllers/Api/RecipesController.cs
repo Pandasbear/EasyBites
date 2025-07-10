@@ -660,11 +660,13 @@ public class RecipesController : ControllerBase
             existingRecipe.Tips = request.Tips;
             existingRecipe.NutritionInfo = request.NutritionInfo;
             existingRecipe.DietaryOptions = request.DietaryOptions;
-            existingRecipe.Author = request.Author;
+            existingRecipe.Author = request.Author ?? "Unknown";
             // Do not allow direct update of SubmittedAt or Status via this endpoint if it's meant for user editing.
             // Status changes should ideally go through a separate workflow (e.g., publish, admin review).
             // However, the frontend passes status, so for now, we'll allow it. If this causes issues, we can restrict it.
-            existingRecipe.Status = request.Status ?? existingRecipe.Status; 
+#pragma warning disable CS8601 // Possible null reference assignment.
+            existingRecipe.Status = request.Status ?? existingRecipe.Status ?? "pending";
+#pragma warning restore CS8601 // Possible null reference assignment. 
             existingRecipe.ImageUrl = request.ImageUrl ?? existingRecipe.ImageUrl;
             existingRecipe.IsDraft = request.IsDraft; // This is a boolean, no null coalescing needed from request
 

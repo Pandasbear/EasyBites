@@ -432,21 +432,21 @@ public class AdminController : ControllerBase
             Console.WriteLine($"[GetRecipe] Found recipe: {recipe.Name}");
             return Ok(new RecipeDto(
                 recipe.Id,
-                recipe.Name,
-                recipe.Description,
-                recipe.Category,
-                recipe.Difficulty,
+                recipe.Name ?? string.Empty,
+                recipe.Description ?? string.Empty,
+                recipe.Category ?? string.Empty,
+                recipe.Difficulty ?? string.Empty,
                 recipe.PrepTime,
                 recipe.CookTime,
                 recipe.Servings,
-                recipe.Ingredients,
-                recipe.Instructions,
+                recipe.Ingredients ?? new List<string>(),
+                recipe.Instructions ?? new List<string>(),
                 recipe.Tips,
                 recipe.NutritionInfo,
                 recipe.DietaryOptions,
-                recipe.Author,
+                recipe.Author ?? string.Empty,
                 recipe.SubmittedAt,
-                recipe.Status,
+                recipe.Status ?? string.Empty,
                 recipe.TotalTime,
                 recipe.UserId,
                 recipe.ImageUrl
@@ -487,21 +487,25 @@ public class AdminController : ControllerBase
             var updateQuery = _supabase.From<Models.Recipe>()
                 .Filter("id", Supabase.Postgrest.Constants.Operator.Equals, id);
 
-            updateQuery = updateQuery.Set(r => r.Name!, request.Name);
-            updateQuery = updateQuery.Set(r => r.Description!, request.Description);
-            updateQuery = updateQuery.Set(r => r.Category!, request.Category);
-            updateQuery = updateQuery.Set(r => r.Difficulty!, request.Difficulty);
+#pragma warning disable CS8603 // Possible null reference return.
+
+            updateQuery = updateQuery.Set(r => r.Name!, request.Name ?? "Untitled Recipe");
+            updateQuery = updateQuery.Set(r => r.Description!, request.Description ?? "No description");
+            updateQuery = updateQuery.Set(r => r.Category!, request.Category ?? "Other");
+            updateQuery = updateQuery.Set(r => r.Difficulty!, request.Difficulty ?? "Easy");
             updateQuery = updateQuery.Set(r => r.PrepTime, request.PrepTime);
             updateQuery = updateQuery.Set(r => r.CookTime, request.CookTime);
             updateQuery = updateQuery.Set(r => r.Servings, request.Servings);
-            updateQuery = updateQuery.Set(r => r.Ingredients!, request.Ingredients);
-            updateQuery = updateQuery.Set(r => r.Instructions!, request.Instructions);
+            updateQuery = updateQuery.Set(r => r.Ingredients!, request.Ingredients ?? new List<string>());
+            updateQuery = updateQuery.Set(r => r.Instructions!, request.Instructions ?? new List<string>());
             updateQuery = updateQuery.Set(r => r.Tips, request.Tips);
             updateQuery = updateQuery.Set(r => r.NutritionInfo, request.NutritionInfo);
             updateQuery = updateQuery.Set(r => r.DietaryOptions!, request.DietaryOptions ?? new List<string>());
-            updateQuery = updateQuery.Set(r => r.Author!, request.Author);
-            updateQuery = updateQuery.Set(r => r.Status!, request.Status);
+            updateQuery = updateQuery.Set(r => r.Author!, request.Author ?? "Unknown");
+            updateQuery = updateQuery.Set(r => r.Status!, request.Status ?? "pending");
             updateQuery = updateQuery.Set(r => r.ImageUrl, request.ImageUrl);
+
+#pragma warning restore CS8603 // Possible null reference return.
             
             var response = await updateQuery.Update();
 
