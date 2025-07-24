@@ -52,6 +52,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         initializeStepByStep();
         setupIngredientCheckboxes();
         setupProgressNavigation();
+        setupServingAdjustment();
 
     } catch (err) {
         console.error('Failed to load recipe or user data:', err);
@@ -417,4 +418,158 @@ function escapeHtml(text) {
         "'": '&#039;'
     };
     return text.replace(/[&<>"]'/g, function(m) { return map[m]; });
+}
+
+// --- Serving Size Adjustment Functions ---
+
+// Sets up the serving size adjustment functionality
+function setupServingAdjustment() {
+    const servingsMetaItem = document.getElementById('servingsMetaItem');
+    const servingsDropdown = document.getElementById('servingsDropdown');
+    const servingOptions = document.querySelectorAll('.serving-option');
+    
+    if (!servingsMetaItem || !servingsDropdown) {
+        console.warn('Serving adjustment elements not found');
+        return;
+    }
+
+    // Toggle dropdown on click
+    servingsMetaItem.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isVisible = servingsDropdown.style.display !== 'none';
+        servingsDropdown.style.display = isVisible ? 'none' : 'block';
+        
+        // Highlight current serving size
+        updateServingOptionsDisplay();
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!servingsMetaItem.contains(e.target)) {
+            servingsDropdown.style.display = 'none';
+        }
+    });
+
+    // Handle serving option selection
+    servingOptions.forEach(option => {
+        option.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const newServings = parseInt(option.getAttribute('data-servings'));
+            
+            if (newServings === currentRecipe.servings) {
+                servingsDropdown.style.display = 'none';
+                return; // No change needed
+            }
+
+            await adjustRecipeServings(newServings);
+            servingsDropdown.style.display = 'none';
+        });
+    });
+}
+
+// Updates the serving options display to highlight current serving size
+function updateServingOptionsDisplay() {
+    const servingOptions = document.querySelectorAll('.serving-option');
+    servingOptions.forEach(option => {
+        const optionServings = parseInt(option.getAttribute('data-servings'));
+        if (optionServings === currentRecipe.servings) {
+            option.classList.add('active');
+        } else {
+            option.classList.remove('active');
+        }
+    });
+}
+
+// Adjusts recipe servings using the API
+async function adjustRecipeServings(newServings) {
+    if (!currentUser) {
+        showLoginPrompt();
+        return;
+    }
+
+    try {
+        // Show loading overlay
+        showLoadingOverlay('Adjusting recipe portions...');
+        
+        // Call the API to adjust servings
+        const response = await EasyBites.api(`/api/recipes/${currentRecipe.id}/adjust-servings`, {
+            method: 'POST',
+            body: JSON.stringify({ newServings: newServings })
+        });
+
+        if (response.success) {
+            // Update current recipe with new ingredients and servings
+            currentRecipe.ingredients = response.variation.modifiedIngredients || currentRecipe.ingredients;
+            currentRecipe.servings = newServings;
+            
+            // Re-render the recipe details with updated ingredients
+            updateRecipeDisplay(response.fromCache);
+            
+            // Show success message
+            const message = response.fromCache 
+                ? `Recipe adjusted to serve ${newServings} people (from cache)`
+                : `Recipe successfully adjusted to serve ${newServings} people using AI`;
+            EasyBites.toast(message, 'success');
+        } else {
+            throw new Error(response.error || 'Failed to adjust recipe servings');
+        }
+    } catch (err) {
+        console.error('Failed to adjust recipe servings:', err);
+        EasyBites.toast('Failed to adjust recipe servings: ' + (err.message || 'Unknown error'), 'error');
+    } finally {
+        hideLoadingOverlay();
+    }
+}
+
+// Updates the recipe display with new serving size and ingredients
+function updateRecipeDisplay(fromCache) {
+    // Update servings display
+    const servingsValue = document.getElementById('servingsValue');
+    if (servingsValue) {
+        const peopleText = currentRecipe.servings === 1 ? 'person' : 'people';
+        servingsValue.textContent = `${currentRecipe.servings} ${peopleText}`;
+    }
+
+    // Update ingredients list
+    const ingredientsList = document.querySelector('.ingredients-list');
+    if (ingredientsList && currentRecipe.ingredients) {
+        ingredientsList.innerHTML = '';
+        currentRecipe.ingredients.forEach((ingredient, index) => {
+            const li = document.createElement('li');
+            const isChecked = recipeProgress.checkedIngredients.includes(index);
+            li.innerHTML = `
+                <input type="checkbox" id="ingredient${index}" class="ingredient-checkbox" data-index="${index}" ${isChecked ? 'checked' : ''}>
+                <label for="ingredient${index}">${escapeHtml(ingredient)}</label>
+            `;
+            ingredientsList.appendChild(li);
+        });
+        
+        // Re-setup ingredient checkboxes
+        setupIngredientCheckboxes();
+    }
+
+    // Update serving options display
+    updateServingOptionsDisplay();
+}
+
+// Shows loading overlay
+function showLoadingOverlay(message = 'Loading...') {
+    const overlay = document.createElement('div');
+    overlay.className = 'loading-overlay';
+    overlay.id = 'loadingOverlay';
+    overlay.innerHTML = `
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <p>${message}</p>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+}
+
+// Hides loading overlay
+function hideLoadingOverlay() {
+    const overlay = document.getElementById('loadingOverlay');
+    if (overlay) {
+        overlay.remove();
+    }
 }

@@ -46,6 +46,7 @@ Easy Bites is a feature-rich recipe platform with the following key capabilities
 
 *   **Recipe Discovery:** Browse, search, and filter recipes based on various criteria (keywords, category, difficulty, cooking time).
 *   **Recipe Viewing:** View detailed recipe information, including ingredients, instructions, preparation time, cooking time, servings, tips, and nutritional information.
+*   **Dynamic Serving Size Adjustment:** Adjust recipe serving sizes (1, 2, 4, 6, or 10 people) with automatic ingredient recalculation using AI-powered scaling. Recipe variations are cached for improved performance.
 *   **User Accounts:** Register, log in, and manage user profiles.
 *   **Recipe Submission:** Submit new recipes to the platform (subject to admin approval).
 *   **Saved Recipes:** Save favorite recipes for easy access.

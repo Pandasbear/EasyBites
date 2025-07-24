@@ -284,6 +284,66 @@ Keep it under 200 words and format as a single paragraph.
         }
     }
 
+    public async Task<List<string>?> RecalculateIngredients(List<string> originalIngredients, int originalServings, int newServings)
+    {
+        try
+        {
+            if (!IsAvailable())
+            {
+                _logger.LogWarning("Gemini service not available, cannot recalculate ingredients");
+                return null;
+            }
+
+            var ingredientsList = string.Join("\n", originalIngredients.Select((ingredient, index) => $"{index + 1}. {ingredient}"));
+            
+            var promptRequest = $@"
+You are a professional chef assistant. I need you to recalculate ingredient quantities for a recipe.
+
+Original recipe serves: {originalServings} people
+New recipe should serve: {newServings} people
+
+Original ingredients:
+{ingredientsList}
+
+Please provide the recalculated ingredients for {newServings} servings. Follow these rules:
+1. Scale all quantities proportionally
+2. Round to practical cooking measurements (e.g., 1.33 cups becomes 1 1/3 cups)
+3. Keep the same ingredient order
+4. Return ONLY the ingredient list, one ingredient per line
+5. Do not include numbering or bullet points
+6. Use standard cooking measurements (cups, tablespoons, teaspoons, ounces, pounds, etc.)
+7. For very small amounts, use fractions or 'pinch' when appropriate
+
+Example format:
+2 cups all-purpose flour
+1/2 cup sugar
+1 tablespoon olive oil
+";
+
+            var recalculatedText = await GenerateTextWithGemini(promptRequest);
+            
+            if (string.IsNullOrEmpty(recalculatedText))
+            {
+                _logger.LogWarning("Failed to get recalculated ingredients from Gemini");
+                return null;
+            }
+
+            // Parse the response into a list of ingredients
+            var recalculatedIngredients = recalculatedText
+                .Split('\n', StringSplitOptions.RemoveEmptyEntries)
+                .Select(line => line.Trim())
+                .Where(line => !string.IsNullOrEmpty(line))
+                .ToList();
+
+            return recalculatedIngredients;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to recalculate ingredients for {OriginalServings} to {NewServings} servings", originalServings, newServings);
+            return null;
+        }
+    }
+
     private string GenerateFallbackPrompt(string recipeName, string category, List<string> ingredients)
     {
         var ingredientList = string.Join(", ", ingredients.Take(3));
@@ -297,4 +357,4 @@ public class ImageGenerationResult
     public string? ImageUrl { get; set; }
     public string? ErrorMessage { get; set; }
     public string? Prompt { get; set; }
-} 
+}

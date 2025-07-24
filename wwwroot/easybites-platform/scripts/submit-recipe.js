@@ -105,9 +105,12 @@
 
       // Function to add an ingredient input field
       function addIngredientField(ingredientText = '') {
+          const ingredientItems = ingredientsList.querySelectorAll('.ingredient-item');
+          const newIngredientNumber = ingredientItems.length + 1;
           const ingredientItem = document.createElement('div');
           ingredientItem.className = 'ingredient-item';
           ingredientItem.innerHTML = `
+              <div class="ingredient-number">${newIngredientNumber}</div>
               <input type="text" placeholder="e.g., 2 cups all-purpose flour" name="ingredients[]" required value="${escapeHtml(ingredientText)}">
               <button type="button" class="remove-ingredient" title="Remove ingredient">×</button>
           `;
@@ -136,6 +139,10 @@
               instructionsList.querySelectorAll('.instruction-item').forEach((item, index) => {
                   item.querySelector('.step-number').textContent = index + 1;
                   item.querySelector('textarea').placeholder = `Describe step ${index + 1}...`;
+              });
+              // Re-number ingredients after removal
+              ingredientsList.querySelectorAll('.ingredient-item').forEach((item, index) => {
+                  item.querySelector('.ingredient-number').textContent = index + 1;
               });
           }
       }
@@ -350,4 +357,4 @@
       }
 
     });
-  })(); 
+  })();

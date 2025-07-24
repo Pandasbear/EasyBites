@@ -1036,6 +1036,410 @@ public class RecipesController : ControllerBase
         }
     }
 
+    // Recipe Variance Endpoints
+    // Endpoint for serving size adjustments
+    [HttpPost("{id}/adjust-servings")]
+    public async Task<IActionResult> AdjustRecipeServings(string id, [FromBody] AdjustServingsRequest request)
+    {
+        var user = GetCurrentUser();
+        if (user == null)
+            return Unauthorized(new { error = "User not authenticated" });
+
+        try
+        {
+            // Verify the original recipe exists
+            var originalRecipeResponse = await _supabase.From<Models.Recipe>()
+                .Filter("id", Supabase.Postgrest.Constants.Operator.Equals, id)
+                .Limit(1)
+                .Get();
+
+            var originalRecipe = originalRecipeResponse.Models.FirstOrDefault();
+            if (originalRecipe == null)
+                return NotFound(new { error = "Recipe not found" });
+
+            // Check if a variation with this serving size already exists for any user
+            var existingVariationResponse = await _supabase.From<RecipeVariation>()
+                .Filter("original_recipe_id", Supabase.Postgrest.Constants.Operator.Equals, id)
+                .Filter("variation_name", Supabase.Postgrest.Constants.Operator.Equals, $"Serves {request.NewServings}")
+                .Limit(1)
+                .Get();
+
+            var existingVariation = existingVariationResponse.Models.FirstOrDefault();
+            if (existingVariation != null)
+            {
+                // Return existing variation
+                return Ok(new { 
+                    success = true, 
+                    message = "Recipe variation already exists",
+                    variation = MapToVariationDto(existingVariation),
+                    fromCache = true
+                });
+            }
+
+            // Try Gemini AI first, then fallback to simple scaling
+            var recalculatedIngredients = await _geminiService.RecalculateIngredients(
+                originalRecipe.Ingredients, 
+                originalRecipe.Servings, 
+                request.NewServings
+            );
+
+            bool usedAI = true;
+            if (recalculatedIngredients == null || !recalculatedIngredients.Any())
+            {
+                _logger.LogWarning("Gemini AI failed, using fallback scaling for recipe {RecipeId}", id);
+                recalculatedIngredients = ScaleIngredientsFallback(
+                    originalRecipe.Ingredients, 
+                    originalRecipe.Servings, 
+                    request.NewServings
+                );
+                usedAI = false;
+            }
+
+            if (recalculatedIngredients == null || !recalculatedIngredients.Any())
+            {
+                return StatusCode(500, new { error = "Failed to recalculate ingredients" });
+            }
+
+            // Create new variation
+            var variation = new RecipeVariation
+            {
+                Id = Guid.NewGuid(),
+                OriginalRecipeId = Guid.Parse(id),
+                UserId = user.Id,
+                VariationName = $"Serves {request.NewServings}",
+                Description = $"Recipe adjusted to serve {request.NewServings} people (originally {originalRecipe.Servings})",
+                ModifiedIngredients = recalculatedIngredients,
+                ModifiedInstructions = originalRecipe.Instructions, // Keep original instructions
+                Notes = usedAI ? $"AI-generated variation for {request.NewServings} servings" : $"Mathematically scaled variation for {request.NewServings} servings",
+                CreatedAt = DateTime.UtcNow
+            };
+
+            var response = await _supabase.From<RecipeVariation>().Insert(variation);
+            var created = response.Models.First();
+
+            // Track this variation for the user (similar to saved recipes)
+            await TrackRecipeVariationForUser(user.Id, created.Id);
+
+            return Ok(new { 
+                success = true, 
+                message = "Recipe adjusted successfully",
+                variation = MapToVariationDto(created),
+                fromCache = false
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error adjusting recipe servings for recipe {RecipeId}: {ErrorMessage}", id, ex.Message);
+            return StatusCode(500, new { error = "Failed to adjust recipe servings", details = ex.Message });
+        }
+    }
+
+    private async Task TrackRecipeVariationForUser(Guid userId, Guid variationId)
+    {
+        try
+        {
+            // Check if already tracked
+            var existingTrackingResponse = await _supabase.From<SavedRecipe>()
+                .Filter("user_id", Supabase.Postgrest.Constants.Operator.Equals, userId.ToString())
+                .Filter("recipe_id", Supabase.Postgrest.Constants.Operator.Equals, variationId.ToString())
+                .Limit(1)
+                .Get();
+
+            if (!existingTrackingResponse.Models.Any())
+            {
+                var savedRecipe = new SavedRecipe
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = userId.ToString(),
+                    RecipeId = variationId.ToString(),
+                    SavedAt = DateTime.UtcNow
+                };
+
+                await _supabase.From<SavedRecipe>().Insert(savedRecipe);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to track recipe variation {VariationId} for user {UserId}", variationId, userId);
+        }
+    }
+
+    [HttpPost("{id}/variations")]
+    public async Task<IActionResult> CreateRecipeVariation(string id, [FromBody] CreateVariationRequest request)
+    {
+        var user = GetCurrentUser();
+        if (user == null)
+            return Unauthorized(new { error = "User not authenticated" });
+
+        try
+        {
+            // Verify the original recipe exists
+            var originalRecipeResponse = await _supabase.From<Models.Recipe>()
+                .Filter("id", Supabase.Postgrest.Constants.Operator.Equals, id)
+                .Limit(1)
+                .Get();
+
+            var originalRecipe = originalRecipeResponse.Models.FirstOrDefault();
+            if (originalRecipe == null)
+                return NotFound(new { error = "Original recipe not found" });
+
+            // Create the variation
+            var variation = new RecipeVariation
+            {
+                Id = Guid.NewGuid(),
+                OriginalRecipeId = Guid.Parse(id),
+                UserId = user.Id,
+                VariationName = request.VariationName,
+                Description = request.Description,
+                ModifiedIngredients = request.ModifiedIngredients,
+                ModifiedInstructions = request.ModifiedInstructions,
+                Notes = request.Notes,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            var response = await _supabase.From<RecipeVariation>().Insert(variation);
+            var created = response.Models.First();
+
+            return Created($"/api/recipes/{id}/variations/{created.Id}", MapToVariationDto(created));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating recipe variation for recipe {RecipeId}: {ErrorMessage}", id, ex.Message);
+            return StatusCode(500, new { error = "Failed to create recipe variation", details = ex.Message });
+        }
+    }
+
+    [HttpGet("{id}/variations")]
+    public async Task<IActionResult> GetRecipeVariations(string id)
+    {
+        try
+        {
+            var response = await _supabase.From<RecipeVariation>()
+                .Filter("original_recipe_id", Supabase.Postgrest.Constants.Operator.Equals, id)
+                .Get();
+
+            var variationDtos = response.Models.Select(MapToVariationDto).ToList();
+            return Ok(variationDtos);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching variations for recipe {RecipeId}: {ErrorMessage}", id, ex.Message);
+            return StatusCode(500, new { error = "Failed to fetch recipe variations", details = ex.Message });
+        }
+    }
+
+    [HttpGet("{id}/variations/{variationId}")]
+    public async Task<IActionResult> GetRecipeVariation(string id, string variationId)
+    {
+        try
+        {
+            var response = await _supabase.From<RecipeVariation>()
+                .Filter("id", Supabase.Postgrest.Constants.Operator.Equals, variationId)
+                .Filter("original_recipe_id", Supabase.Postgrest.Constants.Operator.Equals, id)
+                .Limit(1)
+                .Get();
+
+            var variation = response.Models.FirstOrDefault();
+            if (variation == null)
+                return NotFound(new { error = "Recipe variation not found" });
+
+            return Ok(MapToVariationDto(variation));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching variation {VariationId} for recipe {RecipeId}: {ErrorMessage}", variationId, id, ex.Message);
+            return StatusCode(500, new { error = "Failed to fetch recipe variation", details = ex.Message });
+        }
+    }
+
+    [HttpPut("{id}/variations/{variationId}")]
+    public async Task<IActionResult> UpdateRecipeVariation(string id, string variationId, [FromBody] CreateVariationRequest request)
+    {
+        var user = GetCurrentUser();
+        if (user == null)
+            return Unauthorized(new { error = "User not authenticated" });
+
+        try
+        {
+            var existingResponse = await _supabase.From<RecipeVariation>()
+                .Filter("id", Supabase.Postgrest.Constants.Operator.Equals, variationId)
+                .Filter("original_recipe_id", Supabase.Postgrest.Constants.Operator.Equals, id)
+                .Limit(1)
+                .Get();
+
+            var existing = existingResponse.Models.FirstOrDefault();
+            if (existing == null)
+                return NotFound(new { error = "Recipe variation not found" });
+
+            // Authorization: Only owner or admin can update
+            if (existing.UserId != user.Id && !user.IsAdmin)
+                return Forbid("You are not authorized to update this variation.");
+
+            // Update properties
+            existing.VariationName = request.VariationName;
+            existing.Description = request.Description;
+            existing.ModifiedIngredients = request.ModifiedIngredients;
+            existing.ModifiedInstructions = request.ModifiedInstructions;
+            existing.Notes = request.Notes;
+            existing.UpdatedAt = DateTime.UtcNow;
+
+            var response = await _supabase.From<RecipeVariation>().Update(existing);
+            return Ok(MapToVariationDto(response.Models.First()));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating variation {VariationId} for recipe {RecipeId}: {ErrorMessage}", variationId, id, ex.Message);
+            return StatusCode(500, new { error = "Failed to update recipe variation", details = ex.Message });
+        }
+    }
+
+    [HttpDelete("{id}/variations/{variationId}")]
+    public async Task<IActionResult> DeleteRecipeVariation(string id, string variationId)
+    {
+        var user = GetCurrentUser();
+        if (user == null)
+            return Unauthorized(new { error = "User not authenticated" });
+
+        try
+        {
+            var existingResponse = await _supabase.From<RecipeVariation>()
+                .Filter("id", Supabase.Postgrest.Constants.Operator.Equals, variationId)
+                .Filter("original_recipe_id", Supabase.Postgrest.Constants.Operator.Equals, id)
+                .Limit(1)
+                .Get();
+
+            var existing = existingResponse.Models.FirstOrDefault();
+            if (existing == null)
+                return NotFound(new { error = "Recipe variation not found" });
+
+            // Authorization: Only owner or admin can delete
+            if (existing.UserId != user.Id && !user.IsAdmin)
+                return Forbid("You are not authorized to delete this variation.");
+
+            await _supabase.From<RecipeVariation>()
+                .Filter("id", Supabase.Postgrest.Constants.Operator.Equals, variationId)
+                .Delete();
+
+            return Ok(new { success = true, message = "Recipe variation deleted successfully" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting variation {VariationId} for recipe {RecipeId}: {ErrorMessage}", variationId, id, ex.Message);
+            return StatusCode(500, new { error = "Failed to delete recipe variation", details = ex.Message });
+        }
+    }
+
+    private List<string> ScaleIngredientsFallback(List<string> originalIngredients, int originalServings, int newServings)
+    {
+        var scalingFactor = (double)newServings / originalServings;
+        var scaledIngredients = new List<string>();
+
+        foreach (var ingredient in originalIngredients)
+        {
+            try
+            {
+                var scaledIngredient = ScaleIngredientQuantity(ingredient, scalingFactor);
+                scaledIngredients.Add(scaledIngredient);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to scale ingredient: {Ingredient}, keeping original", ingredient);
+                scaledIngredients.Add(ingredient);
+            }
+        }
+
+        return scaledIngredients;
+    }
+
+    private string ScaleIngredientQuantity(string ingredient, double scalingFactor)
+    {
+        // Common fraction patterns
+        var fractionPattern = @"(\d+)\s*\/\s*(\d+)";
+        var mixedNumberPattern = @"(\d+)\s+(\d+)\s*\/\s*(\d+)";
+        var decimalPattern = @"(\d+(?:\.\d+)?)";
+        
+        // Try mixed number first (e.g., "1 1/2 cups")
+        var mixedMatch = System.Text.RegularExpressions.Regex.Match(ingredient, mixedNumberPattern);
+        if (mixedMatch.Success)
+        {
+            var whole = int.Parse(mixedMatch.Groups[1].Value);
+            var numerator = int.Parse(mixedMatch.Groups[2].Value);
+            var denominator = int.Parse(mixedMatch.Groups[3].Value);
+            var totalValue = whole + (double)numerator / denominator;
+            var scaledValue = totalValue * scalingFactor;
+            var formattedValue = FormatScaledQuantity(scaledValue);
+            return ingredient.Replace(mixedMatch.Value, formattedValue);
+        }
+        
+        // Try simple fraction (e.g., "1/2 cup")
+        var fractionMatch = System.Text.RegularExpressions.Regex.Match(ingredient, fractionPattern);
+        if (fractionMatch.Success)
+        {
+            var numerator = int.Parse(fractionMatch.Groups[1].Value);
+            var denominator = int.Parse(fractionMatch.Groups[2].Value);
+            var value = (double)numerator / denominator;
+            var scaledValue = value * scalingFactor;
+            var formattedValue = FormatScaledQuantity(scaledValue);
+            return ingredient.Replace(fractionMatch.Value, formattedValue);
+        }
+        
+        // Try decimal/whole number (e.g., "2.5 cups" or "3 eggs")
+        var decimalMatch = System.Text.RegularExpressions.Regex.Match(ingredient, decimalPattern);
+        if (decimalMatch.Success)
+        {
+            var value = double.Parse(decimalMatch.Groups[1].Value);
+            var scaledValue = value * scalingFactor;
+            var formattedValue = FormatScaledQuantity(scaledValue);
+            return ingredient.Replace(decimalMatch.Value, formattedValue);
+        }
+        
+        // If no numbers found, return original
+        return ingredient;
+    }
+    
+    private string FormatScaledQuantity(double value)
+    {
+        // Round to reasonable precision
+        if (value < 0.125) return "pinch";
+        if (Math.Abs(value - 0.125) < 0.01) return "1/8";
+        if (Math.Abs(value - 0.25) < 0.01) return "1/4";
+        if (Math.Abs(value - 0.33) < 0.02) return "1/3";
+        if (Math.Abs(value - 0.5) < 0.01) return "1/2";
+        if (Math.Abs(value - 0.67) < 0.02) return "2/3";
+        if (Math.Abs(value - 0.75) < 0.01) return "3/4";
+        
+        // For values >= 1, check for common fractions
+        var wholePart = (int)Math.Floor(value);
+        var fractionalPart = value - wholePart;
+        
+        if (fractionalPart < 0.01) return wholePart.ToString();
+        if (Math.Abs(fractionalPart - 0.25) < 0.01) return wholePart > 0 ? $"{wholePart} 1/4" : "1/4";
+        if (Math.Abs(fractionalPart - 0.33) < 0.02) return wholePart > 0 ? $"{wholePart} 1/3" : "1/3";
+        if (Math.Abs(fractionalPart - 0.5) < 0.01) return wholePart > 0 ? $"{wholePart} 1/2" : "1/2";
+        if (Math.Abs(fractionalPart - 0.67) < 0.02) return wholePart > 0 ? $"{wholePart} 2/3" : "2/3";
+        if (Math.Abs(fractionalPart - 0.75) < 0.01) return wholePart > 0 ? $"{wholePart} 3/4" : "3/4";
+        
+        // Default to decimal with 1-2 decimal places
+        return Math.Round(value, 2).ToString("0.##");
+    }
+
+    private static RecipeVariationDto MapToVariationDto(RecipeVariation variation)
+    {
+        return new RecipeVariationDto
+        {
+            Id = variation.Id,
+            OriginalRecipeId = variation.OriginalRecipeId,
+            UserId = variation.UserId,
+            VariationName = variation.VariationName,
+            Description = variation.Description,
+            ModifiedIngredients = variation.ModifiedIngredients,
+            ModifiedInstructions = variation.ModifiedInstructions,
+            Notes = variation.Notes,
+            CreatedAt = variation.CreatedAt,
+            UpdatedAt = variation.UpdatedAt
+        };
+    }
+
     // DTOs -----------------------------------------------------------
 
     public record SubmitRecipeRequest(
@@ -1152,4 +1556,66 @@ public class RecipesController : ControllerBase
         [JsonPropertyName("createdAt")] 
         public DateTime? CreatedAt { get; set; } 
     }
-} 
+
+    // Recipe Variation Models and DTOs
+    [Supabase.Postgrest.Attributes.Table("recipe_variations")]
+    public class RecipeVariation : BaseModel
+    {
+        [Supabase.Postgrest.Attributes.PrimaryKey("id")]
+        public Guid Id { get; set; }
+        [Supabase.Postgrest.Attributes.Column("original_recipe_id")]
+        public Guid OriginalRecipeId { get; set; }
+        [Supabase.Postgrest.Attributes.Column("user_id")]
+        public Guid UserId { get; set; }
+        [Supabase.Postgrest.Attributes.Column("variation_name")]
+        public string VariationName { get; set; } = string.Empty;
+        [Supabase.Postgrest.Attributes.Column("description")]
+        public string? Description { get; set; }
+        [Supabase.Postgrest.Attributes.Column("modified_ingredients")]
+        public List<string>? ModifiedIngredients { get; set; }
+        [Supabase.Postgrest.Attributes.Column("modified_instructions")]
+        public List<string>? ModifiedInstructions { get; set; }
+        [Supabase.Postgrest.Attributes.Column("notes")]
+        public string? Notes { get; set; }
+        [Supabase.Postgrest.Attributes.Column("created_at")]
+        public DateTime CreatedAt { get; set; }
+        [Supabase.Postgrest.Attributes.Column("updated_at")]
+        public DateTime? UpdatedAt { get; set; }
+    }
+
+    public record AdjustServingsRequest(
+        [Required] [Range(1, 50)] int NewServings
+    );
+
+    public record CreateVariationRequest(
+        [Required] string VariationName,
+        string? Description,
+        List<string>? ModifiedIngredients,
+        List<string>? ModifiedInstructions,
+        string? Notes
+    );
+
+    public class RecipeVariationDto
+    {
+        [JsonPropertyName("id")]
+        public Guid Id { get; set; }
+        [JsonPropertyName("originalRecipeId")]
+        public Guid OriginalRecipeId { get; set; }
+        [JsonPropertyName("userId")]
+        public Guid UserId { get; set; }
+        [JsonPropertyName("variationName")]
+        public string VariationName { get; set; } = string.Empty;
+        [JsonPropertyName("description")]
+        public string? Description { get; set; }
+        [JsonPropertyName("modifiedIngredients")]
+        public List<string>? ModifiedIngredients { get; set; }
+        [JsonPropertyName("modifiedInstructions")]
+        public List<string>? ModifiedInstructions { get; set; }
+        [JsonPropertyName("notes")]
+        public string? Notes { get; set; }
+        [JsonPropertyName("createdAt")]
+        public DateTime CreatedAt { get; set; }
+        [JsonPropertyName("updatedAt")]
+        public DateTime? UpdatedAt { get; set; }
+    }
+}

@@ -94,6 +94,97 @@
     border-radius: 8px;
     padding: 1rem;
     text-align: center;
+    position: relative;
+  }
+
+  .meta-item.servings-adjustable {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+
+  .meta-item.servings-adjustable:hover {
+    background: #e9ecef;
+  }
+
+  .servings-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    margin-top: 0.5rem;
+  }
+
+  .servings-options {
+    display: flex;
+    flex-direction: column;
+    padding: 0.5rem;
+  }
+
+  .serving-option {
+    background: none;
+    border: none;
+    padding: 0.75rem;
+    text-align: center;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+    font-size: 0.9rem;
+    color: #2c3e50;
+  }
+
+  .serving-option:hover {
+    background: #f8f9fa;
+  }
+
+  .serving-option.active {
+    background: #e67e22;
+    color: white;
+  }
+
+  .adjusting-servings {
+    opacity: 0.7;
+    pointer-events: none;
+  }
+
+  .loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+  }
+
+  .loading-content {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  }
+
+  .loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #e67e22;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 1rem;
+  }
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
   }
   
   .meta-icon {

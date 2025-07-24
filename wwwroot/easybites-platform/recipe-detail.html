@@ -61,10 +61,19 @@
                         <div class="meta-label">Cook Time</div>
                         <div class="meta-value">30 minutes</div>
                     </div>
-                    <div class="meta-item">
+                    <div class="meta-item servings-adjustable" id="servingsMetaItem">
                         <div class="meta-icon">🍽️</div>
                         <div class="meta-label">Servings</div>
-                        <div class="meta-value">4 people</div>
+                        <div class="meta-value" id="servingsValue">4 people</div>
+                        <div class="servings-dropdown" id="servingsDropdown" style="display: none;">
+                            <div class="servings-options">
+                                <button class="serving-option" data-servings="1">1 person</button>
+                                <button class="serving-option" data-servings="2">2 people</button>
+                                <button class="serving-option" data-servings="4">4 people</button>
+                                <button class="serving-option" data-servings="6">6 people</button>
+                                <button class="serving-option" data-servings="10">10 people</button>
+                            </div>
+                        </div>
                     </div>
                     <div class="meta-item">
                         <div class="meta-icon">📊</div>
