@@ -54,6 +54,86 @@ public class AuthController : ControllerBase
         return Request.Headers["User-Agent"].FirstOrDefault() ?? "unknown";
     }
 
+    [HttpPost("bootstrap-admin")]
+    public async Task<IActionResult> BootstrapAdmin()
+    {
+        Console.WriteLine("[BootstrapAdmin] Creating initial admin user");
+        
+        try {
+            // Check if any admin users already exist
+            var existingAdmins = await _supabase.From<User>()
+                .Filter("is_admin", Supabase.Postgrest.Constants.Operator.Equals, "true")
+                .Get();
+            
+            if (existingAdmins.Models.Any())
+            {
+                Console.WriteLine("[BootstrapAdmin] Admin user already exists");
+                return Conflict("Admin user already exists");
+            }
+            
+            var adminUser = new User
+            {
+                Id = Guid.NewGuid(),
+                FirstName = "Admin",
+                LastName = "User",
+                Email = "admin@easybites.com",
+                Username = "admin",
+                PasswordHash = HashPassword("admin123"),
+                CookingLevel = "Expert",
+                IsAdmin = true,
+                Active = true,
+                CreatedAt = DateTime.UtcNow,
+                Bio = "System Administrator",
+                FavoriteCuisine = null,
+                Location = null,
+                ProfileImageUrl = null,
+                AdminSecurityCode = "SEC123"
+            };
+            
+            Console.WriteLine($"[BootstrapAdmin] Creating admin user: {adminUser.Email}");
+            var response = await _supabase.From<User>().Insert(adminUser);
+            
+            if (response.Models.Count == 0) {
+                Console.WriteLine("[BootstrapAdmin] Failed to create admin user");
+                return StatusCode(500, "Failed to create admin user");
+            }
+            
+            // Create corresponding user profile
+            var userProfile = new UserProfile
+            {
+                Id = adminUser.Id,
+                FirstName = adminUser.FirstName,
+                LastName = adminUser.LastName,
+                Username = adminUser.Username,
+                FavoriteCuisine = null,
+                Location = null,
+                Bio = adminUser.Bio,
+                AdminVerified = true,
+                Active = true,
+                CookingLevel = adminUser.CookingLevel,
+                CreatedAt = adminUser.CreatedAt,
+                UpdatedAt = DateTime.UtcNow,
+                LastLogin = null
+            };
+            
+            await _supabase.From<UserProfile>().Insert(userProfile);
+            
+            Console.WriteLine("[BootstrapAdmin] Admin user created successfully");
+            return Ok(new { 
+                message = "Admin user created successfully",
+                credentials = new {
+                    username = "admin",
+                    password = "admin123",
+                    securityCode = "SEC123"
+                }
+            });
+        }
+        catch (Exception ex) {
+            Console.WriteLine($"[BootstrapAdmin] Error: {ex.Message}");
+            return StatusCode(500, "An error occurred while creating admin user");
+        }
+    }
+
     [HttpPost("register")]
     public async Task<IActionResult> Register(RegisterRequest request)
     {
@@ -905,4 +985,4 @@ public class AuthController : ControllerBase
         [Column("created_at")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
-} 
+}

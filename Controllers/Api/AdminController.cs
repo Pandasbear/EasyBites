@@ -1173,7 +1173,7 @@ public class AdminController : ControllerBase
                 rating = f.Rating,
                 status = f.Status,
                 submittedAt = f.SubmittedAt,
-                reviewedAt = f.ReviewedAt
+                // reviewedAt = f.ReviewedAt // Commented out due to schema cache issue
             }).ToList();
 
             Console.WriteLine($"[GetAllFeedback] Returning {feedbackData.Count} feedback records");
@@ -1194,17 +1194,23 @@ public class AdminController : ControllerBase
 
         try
         {
-            await _supabase.From<Feedback>()
+            var updateQuery = _supabase.From<Feedback>()
                 .Filter("id", Supabase.Postgrest.Constants.Operator.Equals, id)
                 .Set(f => f.Status!, request.Status)
-                .Set(f => f.AdminResponse!, request.AdminResponse)
-                .Set(f => f.ReviewedAt!, DateTime.UtcNow)
                 .Set(f => f.ReviewedByAdminId!, admin.Id.ToString())
-                .Update();
+                .Set(f => f.ReviewedAt!, DateTime.UtcNow);
+
+            // Only set admin response if provided
+            if (!string.IsNullOrWhiteSpace(request.AdminResponse))
+            {
+                updateQuery = updateQuery.Set(f => f.AdminResponse!, request.AdminResponse);
+            }
+
+            await updateQuery.Update();
 
             // Log the activity
             await _activityLog.LogActivityAsync(admin.Id.ToString(), "feedback_reviewed", id, "feedback",
-                new { status = request.Status, admin_email = admin.Email },
+                new { status = request.Status, admin_response = request.AdminResponse, admin_email = admin.Email },
                 GetClientIp(), GetUserAgent());
 
             return Ok(new { message = "Feedback updated successfully" });
@@ -1275,7 +1281,7 @@ public class AdminController : ControllerBase
                 description = r.Description,
                 status = r.Status,
                 createdAt = r.CreatedAt,
-                reviewedAt = r.ReviewedAt,
+                // reviewedAt = r.ReviewedAt, // Commented out due to schema cache issue
                 adminNotes = r.AdminNotes
             }).ToList();
 
@@ -1338,7 +1344,7 @@ public class AdminController : ControllerBase
                 description = report.Description,
                 status = report.Status,
                 createdAt = report.CreatedAt,
-                reviewedAt = report.ReviewedAt,
+                // reviewedAt = report.ReviewedAt, // Commented out due to schema cache issue
                 adminNotes = report.AdminNotes,
                 reviewedByAdminId = report.ReviewedByAdminId
             };
@@ -1392,7 +1398,7 @@ public class AdminController : ControllerBase
             await updateQuery
                 .Set(r => r.Status!, request.Status)
                 .Set(r => r.AdminNotes!, request.AdminNotes ?? string.Empty)
-                .Set(r => r.ReviewedAt!, DateTime.UtcNow)
+                // .Set(r => r.ReviewedAt!, DateTime.UtcNow) // Commented out due to schema cache issue
                 .Update();
 
             // Log the activity
@@ -1477,7 +1483,7 @@ public class AdminController : ControllerBase
                     Description = "User is harassing other community members in recipe comments.",
                     Status = "reviewed",
                     CreatedAt = DateTime.UtcNow.AddDays(-1),
-                    ReviewedAt = DateTime.UtcNow.AddHours(-3),
+                    // ReviewedAt = DateTime.UtcNow.AddHours(-3), // Commented out due to schema cache issue
                     AdminNotes = "Investigated - evidence found. Taking action.",
                     ReviewedByAdminId = admin.Id,
                     ReportedUserId = Guid.NewGuid()
@@ -1560,4 +1566,4 @@ public record RecipeDto(
     string? ImageUrl
 ); 
 
-public record UpdateImageUrlRequest([Required] string ImageUrl); 
+public record UpdateImageUrlRequest([Required] string ImageUrl);

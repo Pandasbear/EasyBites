@@ -10,6 +10,13 @@
       return;
     }
 
+    // Update page title with user's name
+    const accountTitle = document.getElementById('accountTitle');
+    if (accountTitle && user) {
+      const userName = user.firstName ? `${user.firstName}${user.lastName ? ' ' + user.lastName : ''}` : user.username || 'User';
+      accountTitle.textContent = `Welcome ${userName}`;
+    }
+
     // Pre-fill profile form
     const profileForm = document.getElementById('profileForm');
     if (profileForm && user) {
@@ -162,17 +169,26 @@
     function renderRecipes(recipes, grid) {
       grid.innerHTML = '';
       if (!recipes || recipes.length === 0) {
-        // Determine context based on grid id
-        let message = 'No recipes found.';
-        let btnHtml = '';
+        // Determine context based on grid id and show proper banner
+        let bannerHtml = '';
         if (grid.id === 'myRecipesGrid') {
-          message = "You haven't shared any recipes yet.";
-          btnHtml = '<a href="submit-recipe.html" class="btn btn-primary mt-2">Share a Recipe</a>';
+          bannerHtml = `
+            <div class="empty-state-banner">
+              <div class="banner-icon">👨‍🍳</div>
+              <h3>No Recipes Yet</h3>
+              <p>You haven't shared any recipes with the community yet. Start cooking up something amazing!</p>
+              <a href="submit-recipe.html" class="btn btn-primary">Share Your First Recipe</a>
+            </div>`;
         } else if (grid.id === 'savedRecipesGrid') {
-          message = "You haven't saved any recipes yet.";
-          btnHtml = '<a href="recipes.html" class="btn btn-primary mt-2">Browse Recipes</a>';
+          bannerHtml = `
+            <div class="empty-state-banner">
+              <div class="banner-icon">🔖</div>
+              <h3>No Saved Recipes</h3>
+              <p>You haven't saved any recipes yet. Discover delicious recipes and save your favorites!</p>
+              <a href="recipes.html" class="btn btn-primary">Browse Recipes</a>
+            </div>`;
         }
-        grid.innerHTML = `<div class="empty-state text-center"><p>${message}</p>${btnHtml}</div>`;
+        grid.innerHTML = bannerHtml;
         return;
       }
       recipes.forEach(r => {
@@ -369,12 +385,16 @@
         // Show success message
         EasyBites.toast('Recipe deleted successfully', 'success');
         
-        // If this was the last recipe, show empty state
+        // If this was the last recipe, show empty state banner
         const grid = document.getElementById('myRecipesGrid');
         if (grid && !grid.hasChildNodes()) {
-          let message = "You haven't shared any recipes yet.";
-          let btnHtml = '<a href="submit-recipe.html" class="btn btn-primary mt-2">Share a Recipe</a>';
-          grid.innerHTML = `<div class="empty-state text-center"><p>${message}</p>${btnHtml}</div>`;
+          grid.innerHTML = `
+            <div class="empty-state-banner">
+              <div class="banner-icon">👨‍🍳</div>
+              <h3>No Recipes Yet</h3>
+              <p>You haven't shared any recipes with the community yet. Start cooking up something amazing!</p>
+              <a href="submit-recipe.html" class="btn btn-primary">Share Your First Recipe</a>
+            </div>`;
         }
       } catch (err) {
         console.error('Failed to delete recipe:', err);
@@ -382,6 +402,177 @@
       }
     }
 
-    await Promise.all([loadUserRecipes(), loadSavedRecipes()]);
+    // Setup navigation
+    setupAccountNavigation();
+    
+    await Promise.all([loadUserRecipes(), loadSavedRecipes(), loadUserReports(), loadUserFeedback()]);
   });
-})(); 
+
+  // Setup account navigation
+  function setupAccountNavigation() {
+    const navButtons = document.querySelectorAll('.nav-btn');
+    const sections = document.querySelectorAll('.account-section');
+    
+    navButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const targetSection = btn.getAttribute('data-section');
+        
+        // Remove active class from all buttons
+        navButtons.forEach(b => b.classList.remove('active'));
+        // Add active class to clicked button
+        btn.classList.add('active');
+        
+        // Hide all sections
+        sections.forEach(section => {
+          section.style.display = 'none';
+        });
+        
+        // Show target section
+        const targetElement = document.getElementById(targetSection + 'Section');
+        if (targetElement) {
+          targetElement.style.display = 'block';
+        }
+      });
+    });
+    
+    // Show profile section by default
+    sections.forEach((section, index) => {
+      section.style.display = index === 0 ? 'block' : 'none';
+    });
+  }
+
+  // Load user reports
+  async function loadUserReports() {
+    const container = document.getElementById('myReportsList');
+    if (!container) return;
+    
+    try {
+      const reports = await EasyBites.api('/api/reports/my-reports');
+      renderReports(reports, container);
+    } catch (err) {
+      console.error('Error loading user reports:', err);
+      container.innerHTML = `<p class="error-message">Failed to load reports: ${err.message}</p>`;
+    }
+  }
+
+  // Load user feedback
+  async function loadUserFeedback() {
+    const container = document.getElementById('myFeedbackList');
+    if (!container) return;
+    
+    try {
+      const feedback = await EasyBites.api('/api/feedback/user');
+      renderFeedback(feedback, container);
+    } catch (err) {
+      console.error('Error loading user feedback:', err);
+      container.innerHTML = `<p class="error-message">Failed to load feedback: ${err.message}</p>`;
+    }
+  }
+
+  // Render reports
+  function renderReports(reports, container) {
+    container.innerHTML = '';
+    
+    if (!reports || reports.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state text-center">
+          <p>You haven't submitted any reports yet.</p>
+          <p>Reports help keep our community safe and improve the platform.</p>
+        </div>`;
+      return;
+    }
+    
+    reports.forEach(report => {
+      const reportCard = document.createElement('div');
+      reportCard.className = 'report-card';
+      
+      const statusClass = report.status === 'resolved' ? 'status-resolved' : 
+                         report.status === 'pending' ? 'status-pending' : 'status-reviewing';
+      
+      const adminResponse = report.adminNotes ? 
+        `<div class="admin-response">
+          <h5>Admin Response:</h5>
+          <p>${escapeHtml(report.adminNotes)}</p>
+          <small>Reviewed on ${EasyBites.formatDate(report.reviewedAt)}</small>
+        </div>` : '';
+      
+      reportCard.innerHTML = `
+        <div class="report-header">
+          <span class="report-type">${escapeHtml(report.reportType.replace('_', ' '))}</span>
+          <span class="status-badge ${statusClass}">${report.status}</span>
+        </div>
+        <div class="report-content">
+          <p><strong>Description:</strong> ${escapeHtml(report.description)}</p>
+          <small>Submitted on ${EasyBites.formatDate(report.createdAt)}</small>
+        </div>
+        ${adminResponse}
+      `;
+      
+      container.appendChild(reportCard);
+    });
+  }
+
+  // Render feedback
+  function renderFeedback(feedbackList, container) {
+    container.innerHTML = '';
+    
+    if (!feedbackList || feedbackList.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state text-center">
+          <p>You haven't submitted any feedback yet.</p>
+          <p>Your feedback helps us improve EasyBites!</p>
+        </div>`;
+      return;
+    }
+    
+    feedbackList.forEach(feedback => {
+      const feedbackCard = document.createElement('div');
+      feedbackCard.className = 'feedback-card';
+      
+      const ratingDisplay = feedback.rating ? 
+        `<div class="rating-display">
+          <span class="rating-stars">${'★'.repeat(feedback.rating)}${'☆'.repeat(5 - feedback.rating)}</span>
+          <span class="rating-text">(${feedback.rating}/5)</span>
+        </div>` : '';
+      
+      const statusDisplay = feedback.status ? 
+        `<span class="feedback-status status-${feedback.status.toLowerCase()}">${escapeHtml(feedback.status.charAt(0).toUpperCase() + feedback.status.slice(1))}</span>` : '';
+      
+      const adminResponse = feedback.adminResponse ? 
+        `<div class="admin-response">
+          <h5>Admin Response:</h5>
+          <p>${escapeHtml(feedback.adminResponse)}</p>
+          <small>Responded on ${EasyBites.formatDate(feedback.reviewedAt)}</small>
+        </div>` : '';
+      
+      feedbackCard.innerHTML = `
+        <div class="feedback-header">
+          <span class="feedback-type">${escapeHtml(feedback.type.replace('_', ' '))}</span>
+          ${statusDisplay}
+          ${ratingDisplay}
+        </div>
+        <div class="feedback-content">
+          <h4>${escapeHtml(feedback.subject)}</h4>
+          <p>${escapeHtml(feedback.message)}</p>
+          <small>Submitted on ${EasyBites.formatDate(feedback.submittedAt)}</small>
+        </div>
+        ${adminResponse}
+      `;
+      
+      container.appendChild(feedbackCard);
+    });
+  }
+
+  // Helper function for HTML escaping
+  function escapeHtml(text) {
+    if (!text) return '';
+    const map = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;'
+    };
+    return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+  }
+})();

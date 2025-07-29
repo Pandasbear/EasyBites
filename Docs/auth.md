@@ -33,17 +33,27 @@ The authentication system manages user registration, login, sessions, and profil
     *   Logs out the currently authenticated user by clearing the session cookie.
 
 *   **Update Profile (`PUT /api/auth/profile`):**
-    *   Allows authenticated users to update their profile information (first name, last name, username, cooking level, bio, favorite cuisine, location).
+    *   Allows authenticated users to update their profile information including:
+        *   Personal details: first name, last name, username
+        *   Cooking preferences: cooking level, favorite cuisine
+        *   Additional info: bio, location
     *   Updates records in both `users` and `user_profiles` tables.
+    *   Validates username uniqueness and other constraints.
 
 *   **Change Password (`PUT /api/auth/password`):**
     *   Allows authenticated users to change their password after verifying their current password.
+    *   Uses SHA256 hashing for password security.
     *   Updates the `password_hash` in the `users` table.
+    *   Requires current password verification for security.
 
 *   **Delete Account (`POST /api/auth/delete-account`):**
-    *   Allows authenticated users to permanently delete their account after verifying their password.
-    *   Removes user data from `users`, `user_profiles`, and related tables (e.g., `recipes`, `saved_recipes`).
-    *   Logs the user out.
+    *   Allows authenticated users to permanently delete their account after password verification.
+    *   Comprehensive data cleanup including:
+        *   User records from `users` and `user_profiles` tables
+        *   Associated recipes, saved recipes, and progress tracking
+        *   User sessions and activity logs
+    *   Automatically logs the user out after successful deletion.
+    *   Irreversible operation with security confirmation required.
 
 ## Supporting Models:
 

@@ -32,10 +32,18 @@
     <!-- Main -->
     <main class="account-main">
         <div class="container">
-            <h1 class="mb-3">My Account</h1>
+            <h1 id="accountTitle" class="mb-3">My Account</h1>
+
+            <nav class="account-nav">
+                <button class="nav-btn active" data-section="profile">Profile Details</button>
+                <button class="nav-btn" data-section="myRecipes">My Recipes</button>
+                <button class="nav-btn" data-section="savedRecipes">Saved Recipes</button>
+                <button class="nav-btn" data-section="myReports">My Reports</button>
+                <button class="nav-btn" data-section="myFeedback">My Feedback</button>
+            </nav>
 
             <!-- Profile Details -->
-            <section class="account-section">
+            <section id="profileSection" class="account-section">
                 <h2>Profile Details</h2>
                 <form id="profileForm" class="account-form" novalidate>
                     <div class="form-row">
@@ -128,15 +136,31 @@
             </div>
 
             <!-- User Recipes -->
-            <section class="account-section">
+            <section id="myRecipesSection" class="account-section">
                 <h2>My Recipes</h2>
                 <div id="myRecipesGrid" class="recipes-grid"></div>
             </section>
 
             <!-- Saved Recipes -->
-            <section class="account-section">
+            <section id="savedRecipesSection" class="account-section">
                 <h2>Saved Recipes</h2>
                 <div id="savedRecipesGrid" class="recipes-grid"></div>
+            </section>
+
+            <!-- My Reports Section -->
+            <section id="myReportsSection" class="account-section">
+                <h2>My Reports</h2>
+                <div id="myReportsList" class="reports-list">
+                    <!-- User's reports will be loaded here -->
+                </div>
+            </section>
+
+            <!-- My Feedback Section -->
+            <section id="myFeedbackSection" class="account-section">
+                <h2>My Feedback</h2>
+                <div id="myFeedbackList" class="feedback-list">
+                    <!-- User's feedback will be loaded here -->
+                </div>
             </section>
         </div>
     </main>
@@ -156,4 +180,4 @@
     <script src="scripts/main.js"></script>
     <script src="scripts/account.js"></script>
 </body>
-</html> 
+</html>

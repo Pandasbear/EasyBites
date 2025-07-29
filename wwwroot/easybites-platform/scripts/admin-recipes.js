@@ -148,7 +148,7 @@ function displayRecipes(recipes) {
     
     tbody.innerHTML = recipes.map(recipe => {
         const statusClass = getStatusClass(recipe.status);
-        const submittedDate = new Date(recipe.submittedAt).toLocaleDateString();
+        const submittedDate = EasyBites.formatDate(recipe.submittedAt);
         
         return `
             <tr>
@@ -298,7 +298,7 @@ function populateRecipeForm(recipe) {
     console.log('[populateRecipeForm] Set recipeAuthor:', form.querySelector('#recipeAuthor').value);
     form.querySelector('#recipeStatus').value = recipe.status || 'pending';
     console.log('[populateRecipeForm] Set recipeStatus:', form.querySelector('#recipeStatus').value);
-    form.querySelector('#recipeSubmittedAt').value = recipe.submittedAt ? new Date(recipe.submittedAt).toLocaleString() : '';
+    form.querySelector('#recipeSubmittedAt').value = recipe.submittedAt ? EasyBites.formatDate(recipe.submittedAt) : '';
     console.log('[populateRecipeForm] Set recipeSubmittedAt:', form.querySelector('#recipeSubmittedAt').value);
     form.querySelector('#recipeImageUrl').value = recipe.imageUrl || '';
     console.log('[populateRecipeForm] Set recipeImageUrl:', form.querySelector('#recipeImageUrl').value);
@@ -551,4 +551,4 @@ function showNotification(message, type = 'info') {
     } else {
         EasyBites.toast(message, type); 
     }
-} 
+}

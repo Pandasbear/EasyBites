@@ -12,6 +12,29 @@
 
   // Simple toast helper
   window.EasyBites = window.EasyBites || {};
+
+  // Helper function for safe date formatting
+  window.EasyBites.formatDate = (dateString) => {
+    if (!dateString) return 'Date not available';
+    
+    try {
+      const date = new Date(dateString);
+      // Check if the date is valid
+      if (isNaN(date.getTime())) {
+        return 'Date not available';
+      }
+      
+      // Check for the specific "1/1/1" issue (year 1 or very old dates)
+      if (date.getFullYear() < 1900) {
+        return 'Date not available';
+      }
+      
+      return date.toLocaleDateString();
+    } catch (error) {
+      console.warn('Error formatting date:', dateString, error);
+      return 'Date not available';
+    }
+  };
   window.EasyBites.toast = (message, type = 'info', duration = 3000) => {
     let toastContainer = document.getElementById('toast-container');
     if (!toastContainer) {
@@ -203,4 +226,4 @@
         }
       }
     }
-  }); 
+  });

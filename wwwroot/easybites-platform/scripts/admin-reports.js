@@ -138,7 +138,7 @@ function displayReports(reports) {
     
     tbody.innerHTML = reports.map(report => {
         const statusClass = getStatusClass(report.status);
-        const submittedDate = new Date(report.createdAt).toLocaleDateString();
+        const submittedDate = EasyBites.formatDate(report.createdAt);
         const priority = getPriority(report.reportType);
         const reportedItem = getReportedItem(report);
         
@@ -257,7 +257,7 @@ async function viewReport(reportId) {
             return;
         }
 
-        const submittedDate = new Date(report.createdAt).toLocaleString();
+        const submittedDate = EasyBites.formatDate(report.createdAt);
         const priority = getPriority(report.reportType);
         const reportedItem = getReportedItem(report);
         
@@ -289,7 +289,7 @@ async function viewReport(reportId) {
                 
                 ${report.reviewedAt ? `
                 <div class="review-info">
-                    <p><strong>Reviewed:</strong> ${new Date(report.reviewedAt).toLocaleString()}</p>
+                    <p><strong>Reviewed:</strong> ${EasyBites.formatDate(report.reviewedAt)}</p>
                     ${report.reviewedByAdminId ? `<p><strong>Reviewed by:</strong> Admin ID: ${report.reviewedByAdminId}</p>` : ''}
                 </div>
                 ` : ''}
@@ -458,4 +458,4 @@ function showNotification(message, type = 'info') {
     } else {
         EasyBites.toast(message, type); 
     }
-} 
+}

@@ -159,7 +159,7 @@ function displayFeedback(feedbackList) {
     
     tbody.innerHTML = feedbackList.map(feedback => {
         const statusClass = getStatusClass(feedback.status);
-        const submittedDate = new Date(feedback.submittedAt || feedback.createdAt).toLocaleDateString();
+        const submittedDate = EasyBites.formatDate(feedback.submittedAt || feedback.createdAt);
         const rating = feedback.rating ? '⭐'.repeat(feedback.rating) : 'N/A';
         
         return `
@@ -243,7 +243,7 @@ async function viewFeedback(feedbackId) {
             return;
         }
 
-        const submittedDate = new Date(feedback.submittedAt || feedback.createdAt).toLocaleString();
+        const submittedDate = EasyBites.formatDate(feedback.submittedAt || feedback.createdAt);
         const rating = feedback.rating ? '⭐'.repeat(feedback.rating) : 'No rating';
         
         modalBody.innerHTML = `
@@ -378,4 +378,4 @@ function showNotification(message, type = 'info') {
     } else {
         EasyBites.toast(message, type); // Replaced alert with EasyBites.toast
     }
-} 
+}

@@ -5,6 +5,7 @@ using ProtobufValue = Google.Protobuf.WellKnownTypes.Value;
 using ProtobufStruct = Google.Protobuf.WellKnownTypes.Struct;
 using System.IO;
 using System.Linq;
+using Grpc.Core;
 
 namespace EasyBites.Services;
 
@@ -117,7 +118,7 @@ public class GeminiService
         }
     }
 
-    private bool IsAvailable()
+    public bool IsAvailable()
     {
         return _isConfigured && GetPredictionClient() != null;
     }
@@ -212,6 +213,11 @@ Keep it under 200 words and format as a single paragraph.
                 }
             }
 
+            return null;
+        }
+        catch (RpcException rpcEx) when (rpcEx.StatusCode == Grpc.Core.StatusCode.Unauthenticated)
+        {
+            _logger.LogError("Google Cloud authentication failed. Please ensure credentials are properly configured. Status: {Status}, Message: {Message}", rpcEx.StatusCode, rpcEx.Message);
             return null;
         }
         catch (Exception ex)

@@ -53,6 +53,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         setupIngredientCheckboxes();
         setupProgressNavigation();
         setupServingAdjustment();
+        setupReportAndFeedbackModals();
 
     } catch (err) {
         console.error('Failed to load recipe or user data:', err);
@@ -572,4 +573,201 @@ function hideLoadingOverlay() {
     if (overlay) {
         overlay.remove();
     }
+}
+
+// --- Report and Feedback Modal Functions ---
+
+// Sets up the report and feedback modal functionality
+function setupReportAndFeedbackModals() {
+    const reportBtn = document.getElementById('reportBtn');
+    const feedbackBtn = document.getElementById('feedbackBtn');
+    const reportModal = document.getElementById('reportModal');
+    const feedbackModal = document.getElementById('feedbackModal');
+    const reportForm = document.getElementById('reportForm');
+    const feedbackForm = document.getElementById('feedbackForm');
+
+    // Report button click
+    if (reportBtn) {
+        reportBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (!currentUser) {
+                showLoginPrompt();
+                return;
+            }
+            showModal('reportModal');
+        });
+    }
+
+    // Feedback button click
+    if (feedbackBtn) {
+        feedbackBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (!currentUser) {
+                showLoginPrompt();
+                return;
+            }
+            showModal('feedbackModal');
+        });
+    }
+
+    // Close modal buttons
+    document.querySelectorAll('.close-modal').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const modalId = e.target.getAttribute('data-close');
+            hideModal(modalId);
+        });
+    });
+
+    // Close modal buttons (Cancel buttons)
+    document.querySelectorAll('[data-close]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const modalId = e.target.getAttribute('data-close');
+            hideModal(modalId);
+        });
+    });
+
+    // Close modal when clicking outside
+    document.querySelectorAll('.modal').forEach(modal => {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                hideModal(modal.id);
+            }
+        });
+    });
+
+    // Report form submission
+    if (reportForm) {
+        reportForm.addEventListener('submit', handleReportSubmission);
+    }
+
+    // Feedback form submission
+    if (feedbackForm) {
+        feedbackForm.addEventListener('submit', handleFeedbackSubmission);
+    }
+}
+
+// Shows a modal
+function showModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden'; // Prevent background scrolling
+    }
+}
+
+// Hides a modal
+function hideModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.add('hidden');
+        document.body.style.overflow = ''; // Restore scrolling
+        
+        // Reset form if it exists
+        const form = modal.querySelector('form');
+        if (form) {
+            form.reset();
+        }
+    }
+}
+
+// Handles report form submission
+async function handleReportSubmission(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const reportData = {
+        ReporterUserId: currentUser.id,
+        ReportedRecipeId: currentRecipe.id,
+        ReportType: formData.get('reportType'),
+        Description: formData.get('description')
+    };
+
+    // Validate required fields
+    if (!reportData.ReportType || !reportData.Description.trim()) {
+        EasyBites.toast('Please fill in all required fields', 'error');
+        return;
+    }
+
+    try {
+        showLoadingOverlay('Submitting report...');
+        
+        const response = await EasyBites.api('/api/reports/submit', {
+            method: 'POST',
+            body: JSON.stringify(reportData)
+        });
+
+        if (response) {
+            EasyBites.toast('Report submitted successfully. Thank you for helping keep our community safe.', 'success');
+            hideModal('reportModal');
+        } else {
+            throw new Error('Failed to submit report');
+        }
+    } catch (err) {
+        console.error('Failed to submit report:', err);
+        EasyBites.toast('Failed to submit report: ' + (err.message || 'Unknown error'), 'error');
+    } finally {
+        hideLoadingOverlay();
+    }
+}
+
+// Handles feedback form submission
+async function handleFeedbackSubmission(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const feedbackData = {
+        Name: currentUser.name || currentUser.email || 'Anonymous',
+        Email: currentUser.email || '',
+        Type: formData.get('type'),
+        Subject: formData.get('subject'),
+        Message: formData.get('message'),
+        Rating: formData.get('rating') ? parseInt(formData.get('rating')) : null
+    };
+
+    // Validate required fields
+    if (!feedbackData.Type || !feedbackData.Subject.trim() || !feedbackData.Message.trim()) {
+        EasyBites.toast('Please fill in all required fields', 'error');
+        return;
+    }
+    
+    // Validate minimum lengths
+    if (feedbackData.Subject.trim().length < 3) {
+        EasyBites.toast('Subject must be at least 3 characters long', 'error');
+        return;
+    }
+    
+    if (feedbackData.Message.trim().length < 5) {
+        EasyBites.toast('Message must be at least 5 characters long', 'error');
+        return;
+    }
+
+    try {
+        showLoadingOverlay('Submitting feedback...');
+        
+        const response = await EasyBites.api('/api/feedback/submit', {
+            method: 'POST',
+            body: JSON.stringify(feedbackData)
+        });
+
+        if (response) {
+            EasyBites.toast('Feedback submitted successfully. Thank you for your input!', 'success');
+            hideModal('feedbackModal');
+        } else {
+            throw new Error('Failed to submit feedback');
+        }
+    } catch (err) {
+        console.error('Failed to submit feedback:', err);
+        EasyBites.toast('Failed to submit feedback: ' + (err.message || 'Unknown error'), 'error');
+    } finally {
+        hideLoadingOverlay();
+    }
+}
+
+// Shows login prompt for unauthenticated users
+function showLoginPrompt() {
+    EasyBites.toast('Please log in to use this feature', 'info');
+    // Optionally redirect to login page after a delay
+    setTimeout(() => {
+        window.location.href = 'login.html?redirect=' + encodeURIComponent(window.location.href);
+    }, 2000);
 }

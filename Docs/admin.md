@@ -7,13 +7,24 @@ The Admin Panel provides administrators with tools to manage the Easy Bites plat
 ### Dashboard:
 
 *   **Get Dashboard Stats (`GET /api/admin/dashboard/stats`):**
-    *   Provides aggregate statistics: total users, total recipes, pending recipes, and average recipe rating.
+    *   Provides comprehensive aggregate statistics including:
+        *   Total users, total recipes, pending recipes
+        *   Average recipe rating across the platform
+        *   User activity metrics and growth trends
 *   **Get Recent Activities (`GET /api/admin/dashboard/activities`):**
-    *   Retrieves a list of recent activities logged by the `ActivityLogService`.
+    *   Retrieves a chronological list of recent platform activities.
+    *   Logged by the `ActivityLogService` with detailed action tracking.
+    *   Includes user actions, admin actions, and system events.
 *   **Get Popular Categories (`GET /api/admin/dashboard/popular-categories`):**
-    *   Shows the top 5 most popular recipe categories based on the count of approved recipes.
+    *   Shows the top 5 most popular recipe categories.
+    *   Based on the count of approved recipes in each category.
+    *   Helps administrators understand content trends.
 *   **Get Pending Actions (`GET /api/admin/dashboard/pending-actions`):**
-    *   Summarizes items requiring admin attention: pending recipes, flagged (inactive) users, and unread (new) feedback.
+    *   Comprehensive summary of items requiring admin attention:
+        *   Pending recipe approvals
+        *   Flagged or inactive user accounts
+        *   Unread feedback submissions
+        *   Pending reports requiring review
 
 ### Recipe Management:
 
@@ -79,6 +90,8 @@ The Admin Panel provides administrators with tools to manage the Easy Bites plat
     *   Logs the activity.
 *   **Create Test Reports (`POST /api/admin/reports/test-data`):**
     *   A utility endpoint for admins to generate sample report data for testing.
+    *   Useful for development, demonstration, and system testing purposes.
+    *   Creates realistic test data that follows the same structure as real reports.
 
 ## Authentication & Authorization:
 

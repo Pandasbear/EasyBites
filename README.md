@@ -46,39 +46,62 @@ Easy Bites is a feature-rich recipe platform with the following key capabilities
 
 *   **Recipe Discovery:** Browse, search, and filter recipes based on various criteria (keywords, category, difficulty, cooking time).
 *   **Recipe Viewing:** View detailed recipe information, including ingredients, instructions, preparation time, cooking time, servings, tips, and nutritional information.
-*   **Dynamic Serving Size Adjustment:** Adjust recipe serving sizes (1, 2, 4, 6, or 10 people) with automatic ingredient recalculation using AI-powered scaling. Recipe variations are cached for improved performance.
-*   **User Accounts:** Register, log in, and manage user profiles.
-*   **Recipe Submission:** Submit new recipes to the platform (subject to admin approval).
-*   **Saved Recipes:** Save favorite recipes for easy access.
-*   **Recipe Progress Tracking:** Track progress while cooking a recipe (e.g., current step, checked-off ingredients).
-*   **Feedback Submission:** Provide feedback on the platform or specific recipes.
-*   **Reporting:** Report inappropriate content or users.
-*   **AI-Generated Recipe Images:** View AI-generated images for recipes.
+*   **Dynamic Serving Size Adjustment:** Adjust recipe serving sizes with automatic ingredient recalculation using AI-powered scaling.
+*   **Recipe Variations:** Create, view, and manage recipe variations with different serving sizes and ingredient modifications.
+*   **User Accounts:** Register, log in, and manage user profiles with cooking level, bio, favorite cuisine, and location.
+*   **Recipe Submission:** Submit new recipes to the platform (subject to admin approval) with draft functionality.
+*   **Saved Recipes:** Save favorite recipes for easy access and management.
+*   **Recipe Progress Tracking:** Track progress while cooking a recipe (current step, checked-off ingredients).
+*   **Recipe Ratings:** Rate recipes on a 1-5 scale.
+*   **Feedback Submission:** Provide feedback on the platform with different types and ratings.
+*   **Reporting:** Report inappropriate content or users with detailed descriptions.
+*   **AI-Generated Recipe Images:** Generate and view AI-powered recipe images using Google Gemini.
+*   **Temporary Image Generation:** Preview AI-generated images during recipe submission.
 
 **For Administrators:**
 
-*   **Dashboard:** View platform statistics (total users, total recipes, pending recipes, average ratings) and recent activities.
+*   **Comprehensive Dashboard:** View platform statistics (total users, total recipes, pending recipes, average ratings), recent activities, popular categories, and pending actions.
 *   **Recipe Management:**
-    *   View all recipes with filtering options.
+    *   View all recipes with advanced filtering options (status, search).
     *   Approve, reject, or edit submitted recipes.
-    *   Delete recipes.
-    *   Generate or regenerate AI recipe images.
+    *   Delete recipes and associated data.
+    *   Generate, regenerate, or update recipe images.
+    *   Manage recipe status and publication.
 *   **User Management:**
-    *   View all users with search and filtering options.
-    *   Create new users.
-    *   Suspend, activate, or ban user accounts.
-*   **Feedback Management:** View, filter, and respond to user feedback.
-*   **Report Management:** View, filter, and manage user-submitted reports.
-*   **Activity Logging:** Track various actions performed on the platform.
+    *   View all users with search and filtering capabilities.
+    *   Create new user accounts with admin privileges.
+    *   Suspend, activate, or permanently ban user accounts.
+    *   Retrieve user information and usernames.
+*   **Feedback Management:** View, filter, and respond to user feedback with status updates.
+*   **Report Management:** View, filter, manage, and respond to user-submitted reports with admin notes.
+*   **Activity Logging:** Comprehensive tracking of all actions performed on the platform.
+*   **Test Data Generation:** Create sample reports for testing purposes.
 
 ## Technical Stack
 
 *   **Backend:** ASP.NET Core 9, C#
 *   **Frontend:**
     *   Server-rendered views using Razor (`.cshtml`)
-    *   Static assets (HTML, CSS, JavaScript) in `wwwroot/` for client-side interactions.
-*   **Database & Backend Services:** Supabase (PostgreSQL, Storage, Auth - though custom auth is implemented)
-*   **AI Image Generation:** Google Gemini AI
+    *   Static HTML/CSS/JavaScript assets in `wwwroot/easybites-platform/` for client-side interactions
+    *   Bootstrap 5 for responsive design
+*   **Database & Backend Services:** Supabase (PostgreSQL, Storage)
+*   **Authentication:** Custom cookie-based authentication system
+*   **AI Services:** Google Gemini AI for image generation and recipe scaling
+*   **Services:**
+    *   `ActivityLogService` - Comprehensive activity tracking
+    *   `GeminiService` - AI integration for images and content
+    *   `RecipeImageService` - Recipe image management
+    *   `SupabaseStorageService` - File storage management
+
+## API Endpoints
+
+The application provides comprehensive REST API endpoints:
+
+*   **Authentication:** `/api/auth/*` - Registration, login, profile management
+*   **Recipes:** `/api/recipes/*` - Recipe CRUD, search, filtering, variations, progress tracking
+*   **Admin:** `/api/admin/*` - Administrative functions for users, recipes, feedback, reports
+*   **Feedback:** `/api/feedback/*` - User feedback submission and management
+*   **Reports:** `/api/reports/*` - Content and user reporting system
 
 ## Publishing for Production
 
@@ -92,4 +115,15 @@ The output will be in `bin/Release/net9.0/osx-arm64/publish/` and can be copied 
 
 ---
 
-This README provides a general overview. For more detailed documentation on specific functionalities, please refer to the files in the `Docs/` directory.
+## Documentation
+
+This README provides a general overview. For detailed documentation on specific functionalities, please refer to the comprehensive documentation in the `Docs/` directory:
+
+*   **[Project Schema](Docs/Project%20schema.md)** - Complete database schema and table relationships
+*   **[Authentication System](Docs/auth.md)** - User registration, login, profile management, and security
+*   **[Recipe Management](Docs/recipes.md)** - Recipe CRUD operations, variations, progress tracking, and AI features
+*   **[Admin Panel](Docs/admin.md)** - Administrative dashboard, user management, and content moderation
+*   **[Feedback System](Docs/feedback.md)** - User feedback submission and administrative response management
+*   **[Reports System](Docs/reports.md)** - Content and user reporting with administrative review workflow
+
+Each documentation file provides detailed API endpoint specifications, data models, workflows, and implementation details for the respective system components.

@@ -34,13 +34,13 @@ The feedback system allows users to submit various types of feedback and adminis
 
 *   `Feedback` (Model): Defines the structure for feedback entries stored in the `feedback` table. Key fields include:
     *   `id` (Primary Key)
-    *   `name`, `email` (Optional submitter info)
-    *   `type` (e.g., "bug", "suggestion", "compliment")
-    *   `subject`, `message`
-    *   `rating` (Optional integer rating)
-    *   `status` (e.g., "new", "reviewed", "archived")
-    *   `submitted_at`
-    *   `reviewed_at`, `reviewed_by_admin_id`, `admin_response` (Admin-specific fields)
+    *   `name`, `email` (Optional submitter info for anonymous feedback)
+    *   `type` (e.g., "bug", "suggestion", "compliment", "complaint")
+    *   `subject`, `message` (Required feedback content)
+    *   `rating` (Optional integer rating, typically 1-5 scale)
+    *   `status` (e.g., "new", "reviewed", "resolved", "archived")
+    *   `submitted_at` (Timestamp of submission)
+    *   Note: Some admin-specific fields (`reviewed_at`, `reviewed_by_admin_id`, `admin_response`) are currently commented out in the model due to schema cache issues but are supported in the database schema.
 
 ## Workflow:
 

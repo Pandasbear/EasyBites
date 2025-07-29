@@ -24,29 +24,89 @@ public class FeedbackController : ControllerBase
     {
         if (!ModelState.IsValid) return ValidationProblem(ModelState);
 
-        var feedback = new Models.Feedback
+        try
         {
-            Name = request.Name,
-            Email = request.Email,
-            Type = request.Type,
-            Subject = request.Subject,
-            Message = request.Message,
-            Rating = request.Rating,
-            SubmittedAt = DateTime.UtcNow
-        };
+            // Get current user ID from claims if authenticated
+            var userIdClaim = HttpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            Guid? userId = null;
+            if (!string.IsNullOrEmpty(userIdClaim) && Guid.TryParse(userIdClaim, out var parsedUserId))
+            {
+                userId = parsedUserId;
+            }
 
-        var insertResp = await _supabase.From<Models.Feedback>().Insert(feedback);
-        var row = insertResp.Models.FirstOrDefault();
-        
-        if (row == null)
-            return StatusCode(500, new { error = "Failed to submit feedback" });
+            var feedback = new Models.Feedback
+            {
+                UserId = userId,
+                Name = request.Name,
+                Email = request.Email,
+                Type = request.Type,
+                Subject = request.Subject,
+                Message = request.Message,
+                Rating = request.Rating
+                // SubmittedAt will be set automatically by Supabase DEFAULT now()
+            };
+
+            var insertResp = await _supabase.From<Models.Feedback>().Insert(feedback);
+            var row = insertResp.Models.FirstOrDefault();
             
-        // Return a simple response instead of the raw Supabase model
-        return Ok(new { 
-            message = "Feedback submitted successfully",
-            id = row.Id,
-            submittedAt = row.SubmittedAt
-        });
+            if (row == null)
+                return StatusCode(500, new { error = "Failed to submit feedback" });
+                
+            // Return a simple response instead of the raw Supabase model
+            return Ok(new { 
+                message = "Feedback submitted successfully",
+                id = row.Id,
+                submittedAt = row.SubmittedAt
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = "Failed to submit feedback", details = ex.Message });
+        }
+    }
+
+    // GET /api/feedback/user (get feedback for current user)
+    [HttpGet("user")]
+    public async Task<IActionResult> GetUserFeedback()
+    {
+        try
+        {
+            var userIdClaim = HttpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+            {
+                return Unauthorized(new { error = "User not authenticated" });
+            }
+
+            // Get feedback submitted by the current user
+            var res = await _supabase.From<Models.Feedback>()
+                .Where(f => f.UserId == userId)
+                .Order("submitted_at", Supabase.Postgrest.Constants.Ordering.Descending)
+                .Get();
+            
+            var feedbackList = res.Models.ToList();
+            
+            // Convert to DTOs to avoid serialization issues
+            var feedbackDtos = feedbackList.Select(f => new FeedbackDto
+            {
+                Id = f.Id,
+                Name = f.Name,
+                Email = f.Email,
+                Type = f.Type,
+                Subject = f.Subject,
+                Message = f.Message,
+                Rating = f.Rating,
+                Status = f.Status,
+                SubmittedAt = f.SubmittedAt,
+                AdminResponse = f.AdminResponse,
+                ReviewedAt = f.ReviewedAt
+            }).ToList();
+            
+            return Ok(feedbackDtos);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = "Failed to fetch user feedback", details = ex.Message });
+        }
     }
 
     // GET /api/feedback (admin use)
@@ -91,7 +151,7 @@ public class FeedbackController : ControllerBase
         [EmailAddress] string? Email,
         [Required] string Type,
         [Required, MinLength(3)] string Subject,
-        [Required, MinLength(10)] string Message,
+        [Required, MinLength(5)] string Message,
         int? Rating);
         
     public class FeedbackDto
@@ -103,6 +163,9 @@ public class FeedbackController : ControllerBase
         public string Subject { get; set; } = string.Empty;
         public string Message { get; set; } = string.Empty;
         public int? Rating { get; set; }
+        public string Status { get; set; } = string.Empty;
         public DateTime SubmittedAt { get; set; }
+        public string? AdminResponse { get; set; }
+        public DateTime? ReviewedAt { get; set; }
     }
-} 
+}

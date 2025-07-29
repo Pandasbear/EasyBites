@@ -6,8 +6,7 @@
     <title>Recipe Detail - EasyBites</title>
     <link rel="stylesheet" href="styles/main.css">
     <link rel="stylesheet" href="styles/recipe-detail.css">
-    <!-- Font Awesome for icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
     <header class="main-header">
@@ -89,6 +88,16 @@
                         <p>Recipe Creator</p>
                     </div>
                 </div>
+                
+                <!-- Report and Feedback Buttons -->
+                <div class="recipe-actions">
+                    <button id="reportBtn" class="btn btn-warning" title="Report this recipe">
+                        <i class="fas fa-flag"></i> Report
+                    </button>
+                    <button id="feedbackBtn" class="btn btn-secondary" title="Give feedback">
+                        <i class="fas fa-comment"></i> Feedback
+                    </button>
+                </div>
             </div>
         </article>
 
@@ -156,6 +165,82 @@
             </div>
         </section>
     </main>
+
+    <!-- Report Modal -->
+    <div id="reportModal" class="modal hidden">
+        <div class="modal-content">
+            <button class="close-modal" data-close="reportModal">&times;</button>
+            <h2>Report Recipe</h2>
+            <form id="reportForm" class="modal-form" novalidate>
+                <div class="form-group">
+                    <label for="reportType">Report Type *</label>
+                    <select id="reportType" name="reportType" required>
+                        <option value="">Select a reason</option>
+                        <option value="inappropriate_content">Inappropriate Content</option>
+                        <option value="spam">Spam</option>
+                        <option value="copyright_violation">Copyright Violation</option>
+                        <option value="misleading_information">Misleading Information</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="reportDescription">Description *</label>
+                    <textarea id="reportDescription" name="description" rows="4" required 
+                              placeholder="Please provide details about why you're reporting this recipe..."></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-warning">Submit Report</button>
+                    <button type="button" class="btn btn-secondary" data-close="reportModal">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Feedback Modal -->
+    <div id="feedbackModal" class="modal hidden">
+        <div class="modal-content">
+            <button class="close-modal" data-close="feedbackModal">&times;</button>
+            <h2>Give Feedback</h2>
+            <form id="feedbackForm" class="modal-form" novalidate>
+                <div class="form-group">
+                    <label for="feedbackType">Feedback Type *</label>
+                    <select id="feedbackType" name="type" required>
+                        <option value="">Select feedback type</option>
+                        <option value="recipe_suggestion">Recipe Suggestion</option>
+                        <option value="bug_report">Bug Report</option>
+                        <option value="feature_request">Feature Request</option>
+                        <option value="general">General Feedback</option>
+                        <option value="compliment">Compliment</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="feedbackSubject">Subject *</label>
+                    <input type="text" id="feedbackSubject" name="subject" required 
+                           placeholder="Brief summary of your feedback">
+                </div>
+                <div class="form-group">
+                    <label for="feedbackMessage">Message *</label>
+                    <textarea id="feedbackMessage" name="message" rows="4" required 
+                              placeholder="Please share your feedback or suggestions..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="feedbackRating">Rating (Optional)</label>
+                    <select id="feedbackRating" name="rating">
+                        <option value="">No rating</option>
+                        <option value="5">5 - Excellent</option>
+                        <option value="4">4 - Good</option>
+                        <option value="3">3 - Average</option>
+                        <option value="2">2 - Poor</option>
+                        <option value="1">1 - Very Poor</option>
+                    </select>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Submit Feedback</button>
+                    <button type="button" class="btn btn-secondary" data-close="feedbackModal">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <!-- Footer -->
     <footer class="main-footer">

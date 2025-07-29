@@ -182,8 +182,8 @@ function displayUsers(users) {
         // Convert boolean active to status string for display
         const accountStatus = user.active ? 'Active' : 'Inactive';
         const statusClass = getStatusClass(accountStatus);
-        const joinedDate = new Date(user.createdAt || Date.now()).toLocaleDateString();
-        const lastLogin = user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never';
+        const joinedDate = EasyBites.formatDate(user.createdAt || new Date().toISOString());
+        const lastLogin = user.lastLogin ? EasyBites.formatDate(user.lastLogin) : 'Never';
         
         return `
             <tr>
@@ -269,8 +269,8 @@ async function viewUser(userId) {
             return;
         }
 
-        const joinedDate = new Date(user.createdAt || Date.now()).toLocaleDateString();
-        const lastLogin = user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never';
+        const joinedDate = EasyBites.formatDate(user.createdAt || new Date().toISOString());
+        const lastLogin = user.lastLogin ? EasyBites.formatDate(user.lastLogin) : 'Never';
         const accountStatus = user.active ? 'Active' : 'Inactive';
         
         modalBody.innerHTML = `
@@ -662,4 +662,4 @@ function showNotification(message, type = 'info') {
     } else {
         EasyBites.toast(message, type); 
     }
-} 
+}

@@ -55,18 +55,30 @@ This system handles all aspects of recipe creation, browsing, interaction, and i
     *   Allows the recipe owner or an admin to delete an existing AI-generated image (if any) and generate a new one.
 *   **Publish Recipe (`PUT /api/recipes/{id}/publish`):**
     *   Allows the recipe owner or an admin to change a recipe's status from `draft` to `pending` (for admin review).
+*   **Adjust Recipe Servings (`POST /api/recipes/{id}/adjust-servings`):**
+    *   Allows users to dynamically adjust recipe serving sizes with AI-powered ingredient scaling.
+    *   Creates recipe variations that are cached for improved performance.
+*   **Recipe Variations Management:**
+    *   **Create Variation (`POST /api/recipes/{id}/variations`):** Create a new recipe variation with modified ingredients and instructions.
+    *   **Get Variations (`GET /api/recipes/{id}/variations`):** Retrieve all variations for a specific recipe.
+    *   **Get Specific Variation (`GET /api/recipes/{id}/variations/{variationId}`):** Get details of a specific recipe variation.
+    *   **Update Variation (`PUT /api/recipes/{id}/variations/{variationId}`):** Update an existing recipe variation.
+    *   **Delete Variation (`DELETE /api/recipes/{id}/variations/{variationId}`):** Remove a recipe variation.
 
 ### For Admins Only (via `AdminController` but related to recipes):
     *   **Delete Recipe Image (`DELETE /api/recipes/{id}/image` - in `RecipesController` but admin-only):** Allows an admin to remove the image URL from a recipe record (doesn't delete from storage directly via this endpoint, but `RecipeImageService` handles actual deletion when regenerating).
 
 ## Supporting Models & Services:
 
-*   `Recipe` (Model): Defines the structure of a recipe.
+*   `Recipe` (Model): Defines the structure of a recipe with fields for ingredients, instructions, timing, and metadata.
+*   `RecipeVariance` (Model): Stores recipe variations with different serving sizes and modified ingredients/instructions.
+*   `Rating` (Model): Stores user ratings for recipes (1-5 scale).
 *   `SavedRecipe` (Model): Links users and their saved recipes.
-*   `UserRecipeProgress` (Model): Tracks user's cooking progress.
+*   `UserRecipeProgress` (Model): Tracks user's cooking progress including current step and checked ingredients.
 *   `RecipeImageService`: Handles logic for generating, uploading (via `SupabaseStorageService`), and deleting recipe images using `GeminiService`.
-*   `GeminiService`: Interacts with Google Gemini for AI image prompt and image generation.
-*   `SupabaseStorageService`: Manages image file storage in Supabase.
+*   `GeminiService`: Interacts with Google Gemini for AI image prompt generation, image creation, and recipe scaling.
+*   `SupabaseStorageService`: Manages image file storage in Supabase storage buckets.
+*   `ActivityLogService`: Logs all recipe-related activities for audit purposes.
 *   Various DTOs for request/response data.
 
 ## Image Generation Flow:
