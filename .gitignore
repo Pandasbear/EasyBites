@@ -68,4 +68,6 @@ publish/
 # Uncomment to ignore node packages if added
 # node_modules/ 
 Secrets/
-iron-foundry-464709-h6-8a58f56a70b0.json 
+iron-foundry-464709-h6-6c300853e505.json 
+LegacyScripts/
+.vercel/

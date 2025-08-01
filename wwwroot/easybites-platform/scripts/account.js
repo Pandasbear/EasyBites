@@ -493,7 +493,7 @@
         `<div class="admin-response">
           <h5>Admin Response:</h5>
           <p>${escapeHtml(report.adminNotes)}</p>
-          <small>Reviewed on ${EasyBites.formatDate(report.reviewedAt)}</small>
+          <small>Reviewed on ${window.EasyBites && window.EasyBites.formatDate ? window.EasyBites.formatDate(report.reviewedAt) : 'Date not available'}</small>
         </div>` : '';
       
       reportCard.innerHTML = `
@@ -503,7 +503,7 @@
         </div>
         <div class="report-content">
           <p><strong>Description:</strong> ${escapeHtml(report.description)}</p>
-          <small>Submitted on ${EasyBites.formatDate(report.createdAt)}</small>
+          <small>Submitted on ${window.EasyBites && window.EasyBites.formatDate ? window.EasyBites.formatDate(report.createdAt) : 'Date not available'}</small>
         </div>
         ${adminResponse}
       `;
@@ -542,7 +542,7 @@
         `<div class="admin-response">
           <h5>Admin Response:</h5>
           <p>${escapeHtml(feedback.adminResponse)}</p>
-          <small>Responded on ${EasyBites.formatDate(feedback.reviewedAt)}</small>
+          <small>Responded on ${window.EasyBites && window.EasyBites.formatDate ? window.EasyBites.formatDate(feedback.reviewedAt) : 'Date not available'}</small>
         </div>` : '';
       
       feedbackCard.innerHTML = `
@@ -554,7 +554,7 @@
         <div class="feedback-content">
           <h4>${escapeHtml(feedback.subject)}</h4>
           <p>${escapeHtml(feedback.message)}</p>
-          <small>Submitted on ${EasyBites.formatDate(feedback.submittedAt)}</small>
+          <small>Submitted on ${window.EasyBites && window.EasyBites.formatDate ? window.EasyBites.formatDate(feedback.submittedAt) : 'Date not available'}</small>
         </div>
         ${adminResponse}
       `;
