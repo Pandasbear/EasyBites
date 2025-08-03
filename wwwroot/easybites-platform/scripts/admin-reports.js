@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function initializeReportsManagement() {
-    console.log('[Admin Reports] Initializing reports management...');
+
     setupEventListeners();
     loadReports();
 }

@@ -1,14 +1,11 @@
-// recipes.js - Handler for the recipes browse page
+// recipes.js
 
 (function() {
-    // Initialize variables
     let currentUser = null;
     let savedRecipesIds = [];
     
   document.addEventListener('DOMContentLoaded', async () => {
-        console.log('[recipes.js] DOMContentLoaded fired.');
         const recipesGrid = document.getElementById('recipesGrid');
-        console.log('[recipes.js] recipesGrid element:', recipesGrid);
         if (!recipesGrid) return;
 
         try {
@@ -16,36 +13,26 @@
             if (userResponse) {
                 currentUser = userResponse;
                 updateNavigation(true);
-                console.log('[recipes.js] User authenticated:', currentUser);
-                console.log('[recipes.js] Document cookies:', document.cookie);
 
                 try {
                     const savedRecipes = await EasyBites.api('/api/recipes/saved');
                     savedRecipesIds = savedRecipes.map(recipe => recipe.id);
-                    console.log('[recipes.js] Saved recipes loaded:', savedRecipesIds.length);
-                } catch (err) {
-                    console.error('Failed to load saved recipes (post-auth):', err);
-                }
+                } catch (err) {}
             } else {
                 updateNavigation(false);
-                console.log('[recipes.js] User not authenticated via /api/auth/me.');
             }
         } catch (err) {
-            console.log('User not logged in or session expired on /api/auth/me call:', err);
             updateNavigation(false);
         }
 
-        // Load recipes
-        console.log('[recipes.js] Attempting to load recipes...');
         try {
-      const recipes = await EasyBites.api('/api/recipes');
+            const recipes = await EasyBites.api('/api/recipes');
             if (recipes.length > 0) {
                 renderRecipes(recipes, recipesGrid);
             } else {
                 showNoRecipesMessage(recipesGrid);
             }
         } catch (err) {
-            console.error('Failed to load recipes:', err);
             showErrorMessage(recipesGrid);
         }
         
@@ -87,7 +74,7 @@
             await EasyBites.api('/api/auth/logout', { method: 'POST' });
             window.location.reload();
         } catch (err) {
-            console.error('Logout failed:', err);
+
             EasyBites.toast('Logout failed');
         }
     }
@@ -162,22 +149,17 @@
                 }
             }
             
-            // If recipe lacks a real image, trigger lazy generation
             if (!hasRealImage) {
                 triggerLazyImageGeneration(recipe.id, card);
             }
         });
     }
     
-    // Handle saving/unsaving a recipe
     async function handleSaveRecipe(e) {
         e.preventDefault();
         e.stopPropagation();
 
-        console.log('[recipes.js] handleSaveRecipe called. Current User:', currentUser);
-
         if (!currentUser) {
-            console.warn('Attempted to save/unsave recipe without authentication. Showing login prompt.');
             showLoginPrompt(e);
             return;
         }
@@ -188,19 +170,16 @@
         
         try {
             if (isSaved) {
-                // Unsave recipe
                 await EasyBites.api(`/api/recipes/saved/${recipeId}`, { method: 'DELETE' });
                 button.classList.remove('saved');
                 button.textContent = '🤍';
                 button.title = 'Save to favorites';
                 
-                // Remove from saved recipes array
                 const index = savedRecipesIds.indexOf(recipeId);
                 if (index > -1) savedRecipesIds.splice(index, 1);
                 
                 EasyBites.toast('Recipe removed from favorites');
             } else {
-                // Save recipe
                 await EasyBites.api('/api/recipes/saved', {
                     method: 'POST',
                     body: JSON.stringify({ recipeId })
@@ -209,13 +188,12 @@
                 button.textContent = '❤️';
                 button.title = 'Remove from favorites';
                 
-                // Add to saved recipes array
                 savedRecipesIds.push(recipeId);
                 
                 EasyBites.toast('Recipe saved to favorites');
             }
         } catch (err) {
-            console.error('Failed to save/unsave recipe:', err);
+
             EasyBites.toast('Failed to update favorites');
         }
     }
@@ -284,7 +262,7 @@
                     showNoRecipesMessage(recipesGrid, `No recipes found for "${query}"`);
                 }
     } catch (err) {
-                console.error('Search failed:', err);
+        
                 EasyBites.toast('Search failed');
             }
         });
@@ -339,7 +317,7 @@
                 showNoRecipesMessage(recipesGrid, 'No recipes match your filters');
             }
         } catch (err) {
-            console.error('Failed to apply filters:', err);
+    
             EasyBites.toast('Failed to filter recipes');
         }
     }
@@ -381,13 +359,13 @@
                     overlay?.remove();
                 }, 300);
             } else {
-                console.warn('Image generation did not succeed for recipe', recipeId);
+
                 if (overlay) overlay.textContent = '❌';
             }
         } catch (err) {
-            console.error('Lazy image generation failed:', err);
+
             const overlay = cardElement.querySelector('.img-loading-overlay');
             if (overlay) overlay.textContent = '⚠️';
         }
     }
-})(); 
+})();

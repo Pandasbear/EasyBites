@@ -32,7 +32,6 @@ public class RecipesController : ControllerBase
         _logger = logger; 
     }
 
-    // Simplified DTO for current user claims
     private record CurrentUser(
         Guid Id,
         string Email,
@@ -40,12 +39,10 @@ public class RecipesController : ControllerBase
         bool IsAdmin
     );
 
-    // Helper method to get the current authenticated user from HttpContext.User.Claims
     private CurrentUser? GetCurrentUser()
     {
         if (!HttpContext.User.Identity?.IsAuthenticated == true)
         {
-            Console.WriteLine("[RecipesController::GetCurrentUser] User is not authenticated.");
             return null;
         }
 
@@ -57,7 +54,6 @@ public class RecipesController : ControllerBase
         if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId) || 
             usernameClaim == null || emailClaim == null || roleClaim == null)
         {
-            Console.WriteLine("[RecipesController::GetCurrentUser] Missing or invalid user claims.");
             return null;
         }
 
@@ -69,27 +65,22 @@ public class RecipesController : ControllerBase
         );
     }
 
-    // DTO for recipe image generation request
     public record GenerateRecipeImageRequest(
         [Required] string RecipeName,
         [Required] string RecipeDescription
     );
 
-    [AllowAnonymous] // Allow unauthenticated access for temporary image generation
+    [AllowAnonymous]
     [HttpPost("temp-image-gen")]
     public async Task<IActionResult> GenerateTemporaryImage([FromBody] GenerateRecipeImageRequest request)
     {
-        _logger.LogInformation("[RecipesController::GenerateTemporaryImage] Attempting to generate image for recipe: {RecipeName}", request.RecipeName);
         if (!ModelState.IsValid)
         {
-            _logger.LogWarning("[RecipesController::GenerateTemporaryImage] Invalid ModelState: {ModelStateErrors}",
-                string.Join("; ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage)));
             return BadRequest(ModelState);
         }
 
         if (!_geminiService.IsConfiguredAndAvailable())
         {
-            _logger.LogError("[RecipesController::GenerateTemporaryImage] AI image generation service is not available or configured.");
             return StatusCode(503, new { error = "AI image generation service is not available or configured." });
         }
 
@@ -99,18 +90,16 @@ public class RecipesController : ControllerBase
 
             if (result.Success)
             {
-                _logger.LogInformation("[RecipesController::GenerateTemporaryImage] Image generated successfully. URL: {ImageUrl}", result.ImageUrl);
+                _logger.LogInformation("Image generated successfully. URL: {ImageUrl}", result.ImageUrl);
                 return Ok(new { success = true, imageUrl = result.ImageUrl });
             }
             else
             {
-                _logger.LogError("[RecipesController::GenerateTemporaryImage] Failed to generate image: {ErrorMessage}", result.ErrorMessage);
                 return StatusCode(500, new { success = false, error = result.ErrorMessage });
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[RecipesController::GenerateTemporaryImage] Error generating temporary image: {ErrorMessage}", ex.Message);
             return StatusCode(500, new { success = false, error = "An unexpected error occurred during image generation.", details = ex.Message });
         }
     }
@@ -139,21 +128,19 @@ public class RecipesController : ControllerBase
         return Ok(new List<RecipeDto> { testDto });
     }
 
-    [AllowAnonymous] // Allow unauthenticated access
+    [AllowAnonymous]
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] string? search, [FromQuery] string? category,
                             [FromQuery] string? difficulty, [FromQuery] string? time)
     {
         try
         {
-            // Only fetch publicly-visible recipes (approved & not draft)
             var response = await _supabase.From<Models.Recipe>()
                 .Filter("status", Supabase.Postgrest.Constants.Operator.Equals, "approved")
                 .Filter("is_draft", Supabase.Postgrest.Constants.Operator.Equals, "false")
                 .Get();
             var recipes = response.Models.ToList();
 
-            // Apply filters in memory (for simplicity, avoiding complex Supabase query chaining)
             if (!string.IsNullOrWhiteSpace(search))
             {
                 recipes = recipes.Where(r => r.Name.Contains(search, StringComparison.OrdinalIgnoreCase)).ToList();
@@ -186,7 +173,7 @@ public class RecipesController : ControllerBase
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[GetAll] Error: {ex.Message}");
+
             return StatusCode(500, new { error = "Failed to fetch recipes", details = ex.Message });
         }
     }
@@ -212,7 +199,7 @@ public class RecipesController : ControllerBase
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[Search] Error: {ex.Message}");
+
             return StatusCode(500, new { error = "Failed to search recipes", details = ex.Message });
         }
     }
@@ -246,7 +233,7 @@ public class RecipesController : ControllerBase
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[Filter] Error: {ex.Message}");
+
             return StatusCode(500, new { error = "Failed to filter recipes", details = ex.Message });
         }
     }
@@ -312,7 +299,7 @@ public class RecipesController : ControllerBase
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[GetSavedRecipes] Error: {ex.Message}");
+
             return StatusCode(500, new { error = "Failed to load saved recipes", details = ex.Message });
         }
     }
@@ -351,7 +338,7 @@ public class RecipesController : ControllerBase
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[GetRecipeProgress] Error: {ex.Message}");
+
             return StatusCode(500, new { error = "Failed to fetch recipe progress", details = ex.Message });
         }
     }
@@ -388,11 +375,11 @@ public class RecipesController : ControllerBase
 
         if (response == null || !response.Models.Any())
         {
-            Console.WriteLine($"[CreateRecipeProgress] Supabase insert returned no models for new progress for user {user.Id} and recipe {request.RecipeId}.");
+
             return StatusCode(500, new { message = "Failed to create recipe progress." });
         }
 
-        _logger.LogInformation("[CreateRecipeProgress] New recipe progress created successfully for user {UserId} and recipe {RecipeId}.", user.Id, request.RecipeId);
+        _logger.LogInformation("New recipe progress created successfully for user {UserId} and recipe {RecipeId}.", user.Id, request.RecipeId);
         return Ok(MapToRecipeProgressDto(response.Models.First()));
     }
 
@@ -438,12 +425,11 @@ public class RecipesController : ControllerBase
 
         if (response == null || !response.Models.Any())
         {
-            Console.WriteLine($"[UpdateRecipeProgressInternal] Supabase update returned no models for recipe progress ID {progressId}.");
-            _logger.LogError("[UpdateRecipeProgressInternal] Supabase update failed or returned no models for progress ID {ProgressId}. Request: {Request}.", progressId, JsonSerializer.Serialize(request));
+            _logger.LogError("Supabase update failed or returned no models for progress ID {ProgressId}. Request: {Request}.", progressId, JsonSerializer.Serialize(request));
             return StatusCode(500, new { message = "Failed to update recipe progress." });
         }
 
-        _logger.LogInformation("[UpdateRecipeProgressInternal] Recipe progress updated successfully for progress ID {ProgressId}.", progressId);
+        _logger.LogInformation("Recipe progress updated successfully for progress ID {ProgressId}.", progressId);
         return Ok(MapToRecipeProgressDto(response.Models.First()));
     }
 
@@ -500,7 +486,7 @@ public class RecipesController : ControllerBase
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[CheckSavedRecipe] Error: {ex.Message}");
+
             return StatusCode(500, new { error = "Failed to check saved recipe status", details = ex.Message });
         }
     }
@@ -535,12 +521,12 @@ public class RecipesController : ControllerBase
             
             await _supabase.From<SavedRecipe>().Insert(savedRecipe);
             
-            Console.WriteLine($"[SaveRecipe] User {user.Id} saved recipe {request.RecipeId}");
+
             return Ok(new { success = true, message = "Recipe saved successfully" });
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[SaveRecipe] Error: {ex.Message}");
+
             return StatusCode(500, new { error = "Failed to save recipe", details = ex.Message });
         }
     }
@@ -559,12 +545,12 @@ public class RecipesController : ControllerBase
                 .Filter("recipe_id", Supabase.Postgrest.Constants.Operator.Equals, recipeId)
                 .Delete();
 
-            Console.WriteLine($"[UnsaveRecipe] User {user.Id} unsaved recipe {recipeId}");
+
             return Ok(new { success = true, message = "Recipe unsaved successfully" });
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[UnsaveRecipe] Error: {ex.Message}");
+
             return StatusCode(500, new { error = "Failed to unsave recipe", details = ex.Message });
         }
     }
@@ -619,7 +605,7 @@ public class RecipesController : ControllerBase
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[Submit] Error: {ex.Message}");
+
             return StatusCode(500, new { error = "Failed to submit recipe", details = ex.Message });
         }
     }
@@ -688,7 +674,7 @@ public class RecipesController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[RecipesController::UpdateRecipe] Error updating recipe {RecipeId}: {ErrorMessage}", id, ex.Message);
+            _logger.LogError(ex, "Error updating recipe {RecipeId}: {ErrorMessage}", id, ex.Message);
             return StatusCode(500, new { error = "An unexpected error occurred while updating the recipe.", details = ex.Message });
         }
     }
@@ -717,7 +703,7 @@ public class RecipesController : ControllerBase
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[GetByUserId] Error: {ex.Message}");
+
             // Return empty list so frontend shows friendly empty-state instead of error
             return Ok(new List<RecipeDto>());
         }
@@ -786,7 +772,7 @@ public class RecipesController : ControllerBase
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[GenerateRecipeImage] Error: {ex.Message}");
+
             return StatusCode(500, new { error = "Failed to generate recipe image", details = ex.Message });
         }
     }
@@ -854,7 +840,7 @@ public class RecipesController : ControllerBase
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[RegenerateRecipeImage] Error: {ex.Message}");
+
             return StatusCode(500, new { error = "Failed to regenerate recipe image", details = ex.Message });
         }
     }
@@ -903,7 +889,7 @@ public class RecipesController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[RecipesController::PublishRecipe] Error publishing recipe {RecipeId}: {ErrorMessage}", id, ex.Message);
+            _logger.LogError(ex, "Error publishing recipe {RecipeId}: {ErrorMessage}", id, ex.Message);
             return StatusCode(500, new { error = "An unexpected error occurred while publishing the recipe.", details = ex.Message });
         }
     }
@@ -940,7 +926,7 @@ public class RecipesController : ControllerBase
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[DeleteRecipeImage] Error: {ex.Message}");
+
             return StatusCode(500, new { error = "Failed to delete recipe image", details = ex.Message });
         }
     }

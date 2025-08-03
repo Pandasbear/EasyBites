@@ -1,6 +1,5 @@
-// Basic main.js for EasyBites – handles mobile nav toggle and helper utilities
+// main.js
 
-  // Hamburger toggle
   const hamburger = document.querySelector('.hamburger');
   const navMenu = document.querySelector('.nav-menu');
   if (hamburger && navMenu) {
@@ -10,28 +9,18 @@
     });
   }
 
-  // Simple toast helper
   window.EasyBites = window.EasyBites || {};
 
-  // Helper function for safe date formatting
   window.EasyBites.formatDate = (dateString) => {
     if (!dateString) return 'Date not available';
     
     try {
       const date = new Date(dateString);
-      // Check if the date is valid
-      if (isNaN(date.getTime())) {
+      if (isNaN(date.getTime()) || date.getFullYear() < 1900) {
         return 'Date not available';
       }
-      
-      // Check for the specific "1/1/1" issue (year 1 or very old dates)
-      if (date.getFullYear() < 1900) {
-        return 'Date not available';
-      }
-      
       return date.toLocaleDateString();
     } catch (error) {
-      console.warn('Error formatting date:', dateString, error);
       return 'Date not available';
     }
   };
@@ -50,103 +39,70 @@
 
     toastContainer.appendChild(toast);
 
-    // Show the toast
     setTimeout(() => {
       toast.classList.add('show');
-    }, 100); // Small delay to allow CSS transition
+    }, 100);
 
-    // Hide and remove the toast after duration
     setTimeout(() => {
       toast.classList.remove('show');
       toast.addEventListener('transitionend', () => toast.remove());
     }, duration);
   };
 
-  // Enhanced JSON fetch helper with better error handling
   window.EasyBites.api = async (url, options = {}) => {
-    
     const opts = Object.assign({
       headers: { 'Content-Type': 'application/json' },
       credentials: 'same-origin',
-      expectedStatusCodes: [], // New option to specify status codes that should not trigger an error
+      expectedStatusCodes: [],
     }, options);
     
     try {
       const res = await fetch(url, opts);
       
-      console.log(`[API] Response status: ${res.status} ${res.statusText}`, {
-        url: url,
-        status: res.status,
-        statusText: res.statusText,
-        headers: Object.fromEntries(res.headers.entries())
-      });
-      
-      // Check if the status is not OK and not in the list of expected non-error status codes
       if (!res.ok && !opts.expectedStatusCodes.includes(res.status)) {
-        let errorMessage = `Request failed (${res.status} ${res.statusText})`;
-        let errorDetails = null;
+        let msg = `Request failed (${res.status} ${res.statusText})`;
+        let details = null;
         
         try {
           const contentType = res.headers.get('content-type') || '';
           if (contentType.includes('application/json')) {
-            errorDetails = await res.json();
-            // For validation errors, errorDetails might contain a 'errors' property
-            errorMessage = errorDetails.title || errorDetails.message || errorDetails.errors || errorMessage;
+            details = await res.json();
+            msg = details.title || details.message || details.errors || msg;
           } else {
             const textResponse = await res.text();
             if (textResponse) {
-              errorMessage = textResponse;
+              msg = textResponse;
             }
           }
-        } catch (parseError) {
-          console.warn('[API] Could not parse error response:', parseError);
-        }
+        } catch (parseError) {}
         
-        console.error(`[API] Request failed:`, {
-          url: url,
-          status: res.status,
-          statusText: res.statusText,
-          errorMessage: errorMessage,
-          errorDetails: errorDetails
-        });
-        
-        // Create enhanced error object
-        const error = new Error(typeof errorMessage === 'string' ? errorMessage : JSON.stringify(errorMessage)); // Ensure message is string for Error constructor
+        const error = new Error(typeof msg === 'string' ? msg : JSON.stringify(msg));
         error.status = res.status;
         error.statusText = res.statusText;
-        error.response = errorDetails; 
+        error.response = details; 
         error.url = url;
         
         throw error;
       }
       
-      // If it's not OK but is an expected status code, or it is OK, proceed without throwing
       const ct = res.headers.get('content-type') || '';
       const result = ct.includes('application/json') ? await res.json() : await res.text();
-      
-      console.log(`[API] Success response:`, result);
       return result;
       
     } catch (networkError) {
-      console.error(`[API] Network or parse error:`, networkError);
-      
       if (networkError.name === 'TypeError' && networkError.message.includes('fetch')) {
         throw new Error('Network error - unable to connect to server');
       }
-      
       throw networkError;
     }
   };
 
-  // =====================
-  // AUTH-BASED UI HANDLING
-  // =====================
   document.addEventListener('DOMContentLoaded', async () => {
     let user = null;
     try {
       user = await window.EasyBites.api('/api/auth/me');
     } catch {
-      /* guest */
+      // guest user
     }
 
     if (navMenu) {
@@ -155,7 +111,6 @@
       const shareLink = navMenu.querySelector('a[href="submit-recipe.html"]');
 
       if (user) {
-        // Show share recipe link
         if (shareLink) shareLink.style.display = '';
 
         // Login → View Account

@@ -2,6 +2,64 @@
 
 The feedback system allows users to submit various types of feedback and administrators to manage and respond to it.
 
+## Code Structure
+
+### Controller Setup
+```csharp
+[ApiController]
+[Route("api/[controller]")]
+public class FeedbackController : ControllerBase
+{
+    private readonly Supabase.Client _supabase;
+
+    public FeedbackController(Supabase.Client supabase)
+    {
+        _supabase = supabase;
+    }
+}
+```
+
+### Feedback Submission Example
+```csharp
+[HttpPost("submit")]
+public async Task<IActionResult> Submit(SubmitFeedbackRequest request)
+{
+    if (!ModelState.IsValid) return ValidationProblem(ModelState);
+
+    try
+    {
+        // Get current user ID from claims if authenticated
+        var userIdClaim = HttpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        Guid? userId = null;
+        if (!string.IsNullOrEmpty(userIdClaim) && Guid.TryParse(userIdClaim, out var parsedUserId))
+        {
+            userId = parsedUserId;
+        }
+
+        var feedback = new Models.Feedback
+        {
+            UserId = userId,
+            Name = request.Name,
+            Email = request.Email,
+            Type = request.Type,
+            Subject = request.Subject,
+            Message = request.Message,
+            Rating = request.Rating
+            // SubmittedAt will be set automatically by Supabase DEFAULT now()
+        };
+
+        var insertResp = await _supabase.From<Models.Feedback>().Insert(feedback);
+        var row = insertResp.Models.FirstOrDefault();
+        
+        return Ok(new { message = "Feedback submitted successfully", id = row?.Id });
+    }
+    catch (Exception ex)
+    {
+        return StatusCode(500, new { error = "Failed to submit feedback", details = ex.Message });
+    }
+}
+```
+
 ## User-Facing Functionalities (`FeedbackController.cs`):
 
 *   **Submit Feedback (`POST /api/feedback/submit`):**

@@ -29,7 +29,7 @@ public class AuthController : ControllerBase
         using var sha = SHA256.Create();
         var bytes = sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(password));
         var hash = BitConverter.ToString(bytes).Replace("-", "").ToLowerInvariant();
-        Console.WriteLine($"[HashPassword] Input: {password}, Output hash: {hash}");
+
         return hash;
     }
 
@@ -40,7 +40,7 @@ public class AuthController : ControllerBase
         _supabase = supabase;
         _activityLog = activityLog;
         _supabaseStorageService = supabaseStorageService;
-        Console.WriteLine("[AuthController] Initialized with Supabase client and ActivityLogService");
+
     }
 
     private string GetClientIp()
@@ -57,17 +57,13 @@ public class AuthController : ControllerBase
     [HttpPost("bootstrap-admin")]
     public async Task<IActionResult> BootstrapAdmin()
     {
-        Console.WriteLine("[BootstrapAdmin] Creating initial admin user");
-        
         try {
-            // Check if any admin users already exist
             var existingAdmins = await _supabase.From<User>()
                 .Filter("is_admin", Supabase.Postgrest.Constants.Operator.Equals, "true")
                 .Get();
             
             if (existingAdmins.Models.Any())
             {
-                Console.WriteLine("[BootstrapAdmin] Admin user already exists");
                 return Conflict("Admin user already exists");
             }
             
@@ -90,15 +86,12 @@ public class AuthController : ControllerBase
                 AdminSecurityCode = "SEC123"
             };
             
-            Console.WriteLine($"[BootstrapAdmin] Creating admin user: {adminUser.Email}");
+            
             var response = await _supabase.From<User>().Insert(adminUser);
             
             if (response.Models.Count == 0) {
-                Console.WriteLine("[BootstrapAdmin] Failed to create admin user");
                 return StatusCode(500, "Failed to create admin user");
             }
-            
-            // Create corresponding user profile
             var userProfile = new UserProfile
             {
                 Id = adminUser.Id,
@@ -118,7 +111,7 @@ public class AuthController : ControllerBase
             
             await _supabase.From<UserProfile>().Insert(userProfile);
             
-            Console.WriteLine("[BootstrapAdmin] Admin user created successfully");
+            
             return Ok(new { 
                 message = "Admin user created successfully",
                 credentials = new {
@@ -129,7 +122,7 @@ public class AuthController : ControllerBase
             });
         }
         catch (Exception ex) {
-            Console.WriteLine($"[BootstrapAdmin] Error: {ex.Message}");
+
             return StatusCode(500, "An error occurred while creating admin user");
         }
     }
@@ -137,29 +130,26 @@ public class AuthController : ControllerBase
     [HttpPost("register")]
     public async Task<IActionResult> Register(RegisterRequest request)
     {
-        Console.WriteLine($"[Register] Attempt: {request.Email}, {request.Username}");
-        if (!ModelState.IsValid) { Console.WriteLine("[Register] Invalid model"); return ValidationProblem(ModelState); }
-        if (request.Password != request.ConfirmPassword) { Console.WriteLine("[Register] Passwords do not match"); return BadRequest("Passwords do not match"); }
-        if (request.Password.Length < 8) { Console.WriteLine("[Register] Password too short"); return BadRequest("Password must be at least 8 characters."); }
+        if (!ModelState.IsValid) return ValidationProblem(ModelState);
+        if (request.Password != request.ConfirmPassword) return BadRequest("Passwords do not match");
+        if (request.Password.Length < 8) return BadRequest("Password must be at least 8 characters.");
         
         try {
-            Console.WriteLine($"[Register] Using Supabase client to register user");
+
             // Check for existing user in Supabase
             var emailFilters = new List<Supabase.Postgrest.Interfaces.IPostgrestQueryFilter>
             {
                 new Supabase.Postgrest.QueryFilter("email", Supabase.Postgrest.Constants.Operator.Equals, request.Email)
             };
             var existing = await _supabase.From<User>().Or(emailFilters).Get();
-            Console.WriteLine($"[Register] Existing email count: {existing.Models.Count}");
-            if (existing.Models.Any()) { Console.WriteLine("[Register] Email already registered"); return Conflict("Email already registered"); }
+            if (existing.Models.Any()) return Conflict("Email already registered");
             
             var usernameFilters = new List<Supabase.Postgrest.Interfaces.IPostgrestQueryFilter>
             {
                 new Supabase.Postgrest.QueryFilter("username", Supabase.Postgrest.Constants.Operator.Equals, request.Username)
             };
             var existingUsername = await _supabase.From<User>().Or(usernameFilters).Get();
-            Console.WriteLine($"[Register] Existing username count: {existingUsername.Models.Count}");
-            if (existingUsername.Models.Any()) { Console.WriteLine("[Register] Username already taken"); return Conflict("Username already taken"); }
+            if (existingUsername.Models.Any()) return Conflict("Username already taken");
             
             var user = new User
             {
@@ -179,13 +169,9 @@ public class AuthController : ControllerBase
                 ProfileImageUrl = null // Will be updated later if user uploads an image
             };
             
-            Console.WriteLine($"[Register] Inserting user: {user.Email}, {user.Username}, Hash: {user.PasswordHash}");
-            Console.WriteLine($"[Register] User ID: {user.Id}");
             var response = await _supabase.From<User>().Insert(user);
-            Console.WriteLine($"[Register] Insert response: {response.Models.Count} records");
             
             if (response.Models.Count == 0) {
-                Console.WriteLine("[Register] Failed to insert user into Supabase");
                 return StatusCode(500, "Failed to create user account");
             }
 
@@ -210,11 +196,11 @@ public class AuthController : ControllerBase
                 };
 
                 await _supabase.From<UserProfile>().Insert(userProfile);
-                Console.WriteLine($"[Register] Created user profile for user {user.Id}");
+
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[Register] Failed to create user profile: {ex.Message}");
+
                 // Don't fail registration if profile creation fails - user can still login
                 // The login process will handle creating the profile if missing
             }
@@ -222,7 +208,7 @@ public class AuthController : ControllerBase
             // Log the registration activity
             await _activityLog.LogUserRegisteredAsync(user.Id.ToString(), user.Email, GetClientIp(), GetUserAgent());
             
-            Console.WriteLine("[Register] Success");
+
             return Created("/api/auth/me", new { 
                 id = user.Id, 
                 email = user.Email, 
@@ -230,8 +216,7 @@ public class AuthController : ControllerBase
             });
         }
         catch (Exception ex) {
-            Console.WriteLine($"[Register] Error: {ex.Message}");
-            Console.WriteLine($"[Register] Error details: {ex.ToString()}");
+
             return StatusCode(500, "An error occurred during registration");
         }
     }
@@ -239,11 +224,10 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> Login(LoginRequest request)
     {
-        Console.WriteLine($"[Login] Attempt: {request.LoginEmail}");
-        if (!ModelState.IsValid) { Console.WriteLine("[Login] Invalid model"); return ValidationProblem(ModelState); }
+        if (!ModelState.IsValid) return ValidationProblem(ModelState);
         
         try {
-            Console.WriteLine("[Login] Creating filters for email/username search");
+
             // Create OR query to match either email or username
             var filters = new List<Supabase.Postgrest.Interfaces.IPostgrestQueryFilter>
             {
@@ -251,36 +235,28 @@ public class AuthController : ControllerBase
                 new Supabase.Postgrest.QueryFilter("username", Supabase.Postgrest.Constants.Operator.Equals, request.LoginEmail)
             };
             
-            Console.WriteLine($"[Login] Querying Supabase for user: {request.LoginEmail}");
-            Console.WriteLine("[Login] Using Supabase client to query database");
-            Console.WriteLine($"[Login] Table being queried: users");
+
             
             var users = await _supabase.From<User>().Or(filters).Get();
-            Console.WriteLine($"[Login] Users found: {users.Models.Count}");
+
             
             var user = users.Models.FirstOrDefault();
             if (user == null)
             {
-                Console.WriteLine("[Login] User not found");
                 return Unauthorized(new { success = false, message = "Invalid credentials" });
             }
             
             var inputHash = HashPassword(request.LoginPassword);
-            Console.WriteLine($"[Login] Input hash: {inputHash}");
-            Console.WriteLine($"[Login] DB hash: {user.PasswordHash}");
-            Console.WriteLine($"[Login] Hash comparison: {inputHash == user.PasswordHash}");
-            Console.WriteLine($"[Login] Input hash length: {inputHash.Length}, DB hash length: {user.PasswordHash.Length}");
+
             
             if (inputHash != user.PasswordHash)
             {
-                Console.WriteLine("[Login] Password hash mismatch");
                 return Unauthorized(new { success = false, message = "Invalid credentials" });
             }
 
             // Check if user account is active
             if (!user.Active)
             {
-                Console.WriteLine($"[Login] User account is suspended: {user.Email}");
                 return Unauthorized(new { success = false, message = "Your account has been suspended. Please contact support for assistance." });
             }
             
@@ -307,12 +283,9 @@ public class AuthController : ControllerBase
                 authProperties);
 
             // Log the cookie being set
-            Console.WriteLine($"[Login] Attempted to sign in user {user.Username} ({user.Id}).");
-            Console.WriteLine($"[Login] Cookie authentication scheme used: {CookieAuthenticationDefaults.AuthenticationScheme}");
             // Note: HttpContext.Response.Headers["Set-Cookie"] can show the actual cookie header sent
             foreach (var header in HttpContext.Response.Headers["Set-Cookie"])
             {
-                Console.WriteLine($"[Login] Set-Cookie header: {header}");
             }
 
             // Update last login time in user profile
@@ -327,7 +300,6 @@ public class AuthController : ControllerBase
                 {
                     userProfileToUpdate.LastLogin = DateTime.UtcNow;
                     await _supabase.From<UserProfile>().Update(userProfileToUpdate);
-                    Console.WriteLine($"[Login] Updated last login for user profile {user.Id}");
                 }
                 else
                 {
@@ -349,12 +321,10 @@ public class AuthController : ControllerBase
                         LastLogin = DateTime.UtcNow
                     };
                     await _supabase.From<UserProfile>().Insert(newUserProfile);
-                    Console.WriteLine($"[Login] Created missing user profile for {user.Id}");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[Login] Failed to update/create user profile last login: {ex.Message}");
             }
 
             // Log user activity
@@ -362,12 +332,9 @@ public class AuthController : ControllerBase
             var userAgent = GetUserAgent();
             await _activityLog.LogUserLoginAsync(user.Id.ToString(), user.Email, ipAddress, userAgent);
 
-            Console.WriteLine("[Login] Success");
             return Ok(new { message = "Login successful!" });
         }
         catch (Exception ex) {
-            Console.WriteLine($"[Login] Error: {ex.Message}");
-            Console.WriteLine($"[Login] Error details: {ex.ToString()}");
             return StatusCode(500, new { success = false, message = "An error occurred during login" });
         }
     }
@@ -375,8 +342,7 @@ public class AuthController : ControllerBase
     [HttpPost("admin-login")]
     public async Task<IActionResult> AdminLogin(AdminLoginRequest request)
     {
-        Console.WriteLine($"[AdminLogin] Attempt: {request.AdminUsername}");
-        if (!ModelState.IsValid) { Console.WriteLine("[AdminLogin] Invalid model"); return ValidationProblem(ModelState); }
+        if (!ModelState.IsValid) return ValidationProblem(ModelState);
         
         try {
             // Use the same QueryFilter pattern as the Login method
@@ -387,27 +353,22 @@ public class AuthController : ControllerBase
             
             var adminUser = await _supabase.From<User>().Or(filters).Get();
                 
-            Console.WriteLine($"[AdminLogin] Users found: {adminUser.Models.Count}");
             var user = adminUser.Models.FirstOrDefault(u => u.IsAdmin);
             if (user == null)
             {
-                Console.WriteLine("[AdminLogin] Admin user not found");
                 return Unauthorized("Invalid admin credentials");
             }
             
             // Check password
             var inputHash = HashPassword(request.AdminPassword);
-            Console.WriteLine($"[AdminLogin] Input hash: {inputHash}, DB hash: {user.PasswordHash}");
             if (user.PasswordHash != inputHash)
             {
-                Console.WriteLine("[AdminLogin] Password hash mismatch");
                 return Unauthorized("Invalid admin credentials");
             }
             
             // Check security code
             if (string.IsNullOrEmpty(user.AdminSecurityCode) || user.AdminSecurityCode != request.AdminCode)
             {
-                Console.WriteLine($"[AdminLogin] Security code mismatch. Expected: {user.AdminSecurityCode}, Got: {request.AdminCode}");
                 return Unauthorized("Invalid admin credentials");
             }
             
@@ -448,15 +409,6 @@ public class AuthController : ControllerBase
             };
 
             await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(claimsIdentity), authProperties);
-
-            // Log the sign-in success
-            Console.WriteLine($"[AdminLogin] Attempted to sign in admin {user.Username} ({user.Id}).");
-            Console.WriteLine($"[AdminLogin] Cookie authentication scheme used: {CookieAuthenticationDefaults.AuthenticationScheme}");
-            foreach (var header in HttpContext.Response.Headers["Set-Cookie"])
-            {
-                Console.WriteLine($"[AdminLogin] Set-Cookie header: {header}");
-            }
-            Console.WriteLine($"[AdminLogin] Success: {user.Email} (Admin Session)");
             return Ok(new { 
                 success = true,
                 user = new {
@@ -471,8 +423,6 @@ public class AuthController : ControllerBase
             });
         }
         catch (Exception ex) {
-            Console.WriteLine($"[AdminLogin] Error: {ex.Message}");
-            Console.WriteLine($"[AdminLogin] Error details: {ex.ToString()}");
             return StatusCode(500, "An error occurred during admin login");
         }
     }
@@ -480,12 +430,7 @@ public class AuthController : ControllerBase
     // Helper method to get the current authenticated user from HttpContext.User.Claims
     private async Task<User?> GetUserFromDatabase(Guid userId)
     {
-        Console.WriteLine($"[GetUserFromDatabase] Looking up user with ID: {userId}");
         var user = (await _supabase.From<User>().Where(u => u.Id == userId).Limit(1).Get()).Models.FirstOrDefault();
-        if (user != null)
-        {
-            Console.WriteLine($"[GetUserFromDatabase] Found user: {user.Username}");
-        }
         return user;
     }
 
@@ -506,20 +451,8 @@ public class AuthController : ControllerBase
         var userIdClaim = userClaims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
         if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
         {
-            Console.WriteLine("[GetCurrentUser] No authenticated user found or invalid user ID.");
-            if (userIdClaim == null)
-            {
-                Console.WriteLine("[GetCurrentUser] ClaimTypes.NameIdentifier not found in claims.");
-            }
-            else
-            {
-                Console.WriteLine($"[GetCurrentUser] Failed to parse userIdClaim.Value: '{userIdClaim.Value}' into GUID.");
-            }
-            Console.WriteLine("[GetCurrentUser] All claims:");
-            foreach (var claim in userClaims)
-            {
-                Console.WriteLine($"  Type: {claim.Type}, Value: {claim.Value}");
-            }
+
+
             return Unauthorized(new { error = "User not authenticated" });
         }
 
@@ -527,7 +460,7 @@ public class AuthController : ControllerBase
         var user = await GetUserFromDatabase(userId);
         if (user == null)
         {
-            Console.WriteLine($"[GetCurrentUser] User profile not found for ID: {userId}");
+
             return NotFound(new { error = "User profile not found" });
         }
 
@@ -565,7 +498,7 @@ public class AuthController : ControllerBase
         // Sign out the user using cookie authentication
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
 
-        Console.WriteLine("[Logout] User logged out successfully.");
+
         return Ok(new { message = "Logged out successfully." });
     }
 
@@ -574,13 +507,13 @@ public class AuthController : ControllerBase
     {
         try
         {
-            Console.WriteLine("[UpdateProfile] Attempting to update user profile");
+
 
             // Use cookie-based authentication claims instead of the custom session cookie
             var authenticatedUserId = GetAuthenticatedUserIdFromClaims();
             if (authenticatedUserId == null)
             {
-                Console.WriteLine("[UpdateProfile] No authenticated user id found in claims");
+
                 return Unauthorized(new { success = false, message = "Not authenticated" });
             }
 
@@ -591,7 +524,7 @@ public class AuthController : ControllerBase
                                        .Get()).Models.FirstOrDefault();
             if (user == null)
             {
-                Console.WriteLine("[UpdateProfile] User not found in database");
+
                 return Unauthorized(new { success = false, message = "User not found" });
             }
 
@@ -604,7 +537,7 @@ public class AuthController : ControllerBase
 
                 if (existingUsername.Models.Any())
                 {
-                    Console.WriteLine("[UpdateProfile] Username already taken");
+
                     return Conflict(new { success = false, message = "Username already taken" });
                 }
             }
@@ -636,7 +569,7 @@ public class AuthController : ControllerBase
 
             if (response.Models.Count == 0)
             {
-                Console.WriteLine("[UpdateProfile] Failed to update user in Supabase");
+
                 return StatusCode(500, new { success = false, message = "Failed to update profile" });
             }
 
@@ -657,20 +590,19 @@ public class AuthController : ControllerBase
                 };
 
                 await _supabase.From<UserProfile>().Upsert(userProfile);
-                Console.WriteLine("[UpdateProfile] Updated user_profiles table");
+
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[UpdateProfile] Could not update user_profiles: {ex.Message}");
+
             }
 
-            Console.WriteLine("[UpdateProfile] Success");
+
             return Ok(new { success = true, message = "Profile updated successfully" });
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[UpdateProfile] Error: {ex.Message}");
-            Console.WriteLine($"[UpdateProfile] Error details: {ex}");
+
             return StatusCode(500, new { success = false, message = "An error occurred while updating profile" });
         }
     }
@@ -680,30 +612,30 @@ public class AuthController : ControllerBase
     {
         try
         {
-            Console.WriteLine("[ChangePassword] Attempting to change password");
+
             
             if (!ModelState.IsValid)
             {
-                Console.WriteLine("[ChangePassword] Invalid model");
+
                 return ValidationProblem(ModelState);
             }
             
             if (request.NewPassword != request.ConfirmPassword)
             {
-                Console.WriteLine("[ChangePassword] New passwords do not match");
+
                 return BadRequest(new { success = false, message = "New passwords do not match" });
             }
             
             if (request.NewPassword.Length < 8)
             {
-                Console.WriteLine("[ChangePassword] New password too short");
+
                 return BadRequest(new { success = false, message = "Password must be at least 8 characters" });
             }
             
             var authenticatedUserId = GetAuthenticatedUserIdFromClaims();
             if (authenticatedUserId == null)
             {
-                Console.WriteLine("[ChangePassword] No authenticated user id found in claims");
+
                 return Unauthorized(new { success = false, message = "Not authenticated" });
             }
 
@@ -713,7 +645,7 @@ public class AuthController : ControllerBase
                                        .Get()).Models.FirstOrDefault();
             if (user == null)
             {
-                Console.WriteLine("[ChangePassword] User not found in database");
+
                 return Unauthorized(new { success = false, message = "User not found" });
             }
 
@@ -721,7 +653,7 @@ public class AuthController : ControllerBase
             var currentPasswordHash = HashPassword(request.CurrentPassword);
             if (currentPasswordHash != user.PasswordHash)
             {
-                Console.WriteLine("[ChangePassword] Current password is incorrect");
+
                 return BadRequest(new { success = false, message = "Current password is incorrect" });
             }
 
@@ -737,17 +669,16 @@ public class AuthController : ControllerBase
 
             if (response.Models.Count == 0)
             {
-                Console.WriteLine("[ChangePassword] Failed to update password in Supabase");
+
                 return StatusCode(500, new { success = false, message = "Failed to update password" });
             }
 
-            Console.WriteLine("[ChangePassword] Success");
+
             return Ok(new { success = true, message = "Password changed successfully" });
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[ChangePassword] Error: {ex.Message}");
-            Console.WriteLine($"[ChangePassword] Error details: {ex}");
+
             return StatusCode(500, new { success = false, message = "An error occurred while changing password" });
         }
     }
@@ -757,18 +688,18 @@ public class AuthController : ControllerBase
     {
         try
         {
-            Console.WriteLine("[DeleteAccount] Attempting to delete user account");
+
             
             if (!ModelState.IsValid)
             {
-                Console.WriteLine("[DeleteAccount] Invalid model");
+
                 return ValidationProblem(ModelState);
             }
 
             var authenticatedUserId = GetAuthenticatedUserIdFromClaims();
             if (authenticatedUserId == null)
             {
-                Console.WriteLine("[DeleteAccount] No authenticated user id found in claims");
+
                 return Unauthorized(new { success = false, message = "Not authenticated" });
             }
 
@@ -778,7 +709,7 @@ public class AuthController : ControllerBase
                                        .Get()).Models.FirstOrDefault();
             if (user == null)
             {
-                Console.WriteLine("[DeleteAccount] User not found in database");
+
                 return Unauthorized(new { success = false, message = "User not found" });
             }
 
@@ -786,11 +717,11 @@ public class AuthController : ControllerBase
             var passwordHash = HashPassword(request.Password);
             if (passwordHash != user.PasswordHash)
             {
-                Console.WriteLine("[DeleteAccount] Password is incorrect");
+
                 return BadRequest(new { success = false, message = "Password is incorrect" });
             }
 
-            Console.WriteLine($"[DeleteAccount] Deleting user and their data: {user.Id}");
+
             string userIdString = user.Id.ToString();
 
             try {
@@ -802,7 +733,7 @@ public class AuthController : ControllerBase
                     .Delete();
             }
             catch (Exception ex) {
-                Console.WriteLine($"[DeleteAccount] Error deleting related data: {ex.Message}");
+
             }
 
             await _supabase.From<User>()
@@ -816,19 +747,19 @@ public class AuthController : ControllerBase
 
             if (!deletionSuccessful)
             {
-                Console.WriteLine("[DeleteAccount] Failed to delete user from Supabase");
+
                 return StatusCode(500, new { success = false, message = "Failed to delete account" });
             }
 
             // Sign the user out of cookie auth as well
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
 
-            Console.WriteLine("[DeleteAccount] Account deleted successfully");
+
             return Ok(new { success = true, message = "Account deleted successfully" });
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[DeleteAccount] Error deleting account: {ex.Message}");
+
             return StatusCode(500, new { success = false, message = "An error occurred while deleting account" });
         }
     }

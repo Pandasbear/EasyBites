@@ -24,14 +24,10 @@ public class GeminiService
     {
         _logger = logger;
         
-        // Only read configuration, don't create any Google Cloud resources
         _projectId = configuration["Google:ProjectId"] ?? "";
         _location = configuration["Google:Location"] ?? "us-central1";
-
-        // Optional explicit credentials path
         _credentialsPath = configuration["Google:CredentialsPath"];
 
-        // If not supplied, automatically look for a *.json file in Secrets/
         if (string.IsNullOrEmpty(_credentialsPath))
         {
             try

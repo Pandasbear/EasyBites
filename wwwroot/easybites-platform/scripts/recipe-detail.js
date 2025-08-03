@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Fetch user and recipe in parallel
         const [userResponse, recipeResponse] = await Promise.all([
             EasyBites.api('/api/auth/me').catch(err => {
-                console.warn('User not logged in or session expired:', err);
+
                 return null; // Allow recipe loading even if user is not logged in
             }),
             EasyBites.api(`/api/recipes/${recipeId}`)
@@ -34,9 +34,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (currentUser) {
             try {
                 recipeProgress = await EasyBites.api(`/api/recipes/progress/${recipeId}`);
-                console.log('Fetched recipe progress:', recipeProgress);
+
             } catch (err) {
-                console.warn('No existing progress for this recipe, or error fetching:', err);
+
                 recipeProgress = { // Initialize with default values if no progress found
                     currentInstructionStep: 0,
                     checkedIngredients: []
@@ -56,7 +56,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         setupReportAndFeedbackModals();
 
     } catch (err) {
-        console.error('Failed to load recipe or user data:', err);
+
         document.querySelector('main').innerHTML = `<p class="error-message">Failed to load recipe: ${err.message || 'Unknown error'}</p>`;
     }
 });
@@ -92,7 +92,7 @@ async function handleLogout(e) {
         await EasyBites.api('/api/auth/logout', { method: 'POST' });
         window.location.href = 'recipes.html';
     } catch (err) {
-        console.error('Logout failed:', err);
+
         EasyBites.toast('Logout failed');
     }
 }
@@ -131,7 +131,7 @@ function renderRecipeDetails(recipe) {
             }
         }).catch(err => {
             // Unexpected error
-            console.error('Failed to get save status:', err);
+
             // Fallback to unsaved state in case of unexpected error
             saveRecipeBtn.classList.remove('saved');
             saveRecipeBtn.textContent = '🤍';
@@ -224,7 +224,7 @@ async function handleSaveRecipe(e) {
     e.stopPropagation();
 
     if (!currentUser) {
-        console.warn('Attempted to save/unsave recipe without authentication. Showing login prompt.');
+        
         showLoginPrompt(e); // Defined in main.js, or local if needed
         return;
     }
@@ -254,7 +254,7 @@ async function handleSaveRecipe(e) {
             EasyBites.toast('Recipe saved to favorites');
         }
     } catch (err) {
-        console.error('Failed to save/unsave recipe:', err);
+        
         // Check if the error is due to the recipe already being saved (409 Conflict)
         if (err.status === 409) {
             EasyBites.toast('Recipe is already in your favorites.');
@@ -379,7 +379,7 @@ async function handleIngredientCheck(e) {
 // Saves the current recipe progress to the backend
 async function saveRecipeProgress() {
     if (!currentUser) {
-        console.warn('Not logged in. Cannot save recipe progress.');
+
         return;
     }
     try {
@@ -402,9 +402,9 @@ async function saveRecipeProgress() {
         if (method === 'POST' && result && result.id) {
             recipeProgress.id = result.id;
         }
-        console.log('Recipe progress saved:', result);
+        
     } catch (err) {
-        console.error('Failed to save recipe progress:', err);
+        
         EasyBites.toast('Failed to save progress: ' + (err.message || ''));
     }
 }
@@ -430,7 +430,7 @@ function setupServingAdjustment() {
     const servingOptions = document.querySelectorAll('.serving-option');
     
     if (!servingsMetaItem || !servingsDropdown) {
-        console.warn('Serving adjustment elements not found');
+
         return;
     }
 
@@ -515,7 +515,7 @@ async function adjustRecipeServings(newServings) {
             throw new Error(response.error || 'Failed to adjust recipe servings');
         }
     } catch (err) {
-        console.error('Failed to adjust recipe servings:', err);
+
         EasyBites.toast('Failed to adjust recipe servings: ' + (err.message || 'Unknown error'), 'error');
     } finally {
         hideLoadingOverlay();
@@ -703,7 +703,7 @@ async function handleReportSubmission(e) {
             throw new Error('Failed to submit report');
         }
     } catch (err) {
-        console.error('Failed to submit report:', err);
+        
         EasyBites.toast('Failed to submit report: ' + (err.message || 'Unknown error'), 'error');
     } finally {
         hideLoadingOverlay();
@@ -756,7 +756,7 @@ async function handleFeedbackSubmission(e) {
             throw new Error('Failed to submit feedback');
         }
     } catch (err) {
-        console.error('Failed to submit feedback:', err);
+        
         EasyBites.toast('Failed to submit feedback: ' + (err.message || 'Unknown error'), 'error');
     } finally {
         hideLoadingOverlay();

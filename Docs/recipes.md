@@ -2,6 +2,63 @@
 
 This system handles all aspects of recipe creation, browsing, interaction, and image generation.
 
+## Code Structure
+
+### Controller Setup
+```csharp
+[ApiController]
+[Route("api/[controller]")]
+[Authorize] // Apply Authorize attribute at the class level
+public class RecipesController : ControllerBase
+{
+    private readonly Supabase.Client _supabase;
+    private readonly RecipeImageService _imageService;
+    private readonly GeminiService _geminiService; 
+    private readonly ILogger<RecipesController> _logger; 
+
+    public RecipesController(Supabase.Client supabase, RecipeImageService imageService, 
+                           GeminiService geminiService, ILogger<RecipesController> logger)
+    {
+        _supabase = supabase;
+        _imageService = imageService;
+        _geminiService = geminiService; 
+        _logger = logger; 
+    }
+}
+```
+
+### User Authentication Helper
+```csharp
+private record CurrentUser(
+    Guid Id,
+    string Email,
+    string Username,
+    bool IsAdmin
+);
+
+private CurrentUser? GetCurrentUser()
+{
+    if (!HttpContext.User.Identity?.IsAuthenticated == true)
+        return null;
+
+    var userIdClaim = HttpContext.User.FindFirst(ClaimTypes.NameIdentifier);
+    var usernameClaim = HttpContext.User.FindFirst(ClaimTypes.Name);
+    var emailClaim = HttpContext.User.FindFirst(ClaimTypes.Email);
+    var roleClaim = HttpContext.User.FindFirst(ClaimTypes.Role);
+
+    if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId) || 
+        usernameClaim == null || emailClaim == null || roleClaim == null)
+        return null;
+
+    return new CurrentUser(
+        Id: userId,
+        Email: emailClaim.Value,
+        Username: usernameClaim.Value,
+        IsAdmin: roleClaim.Value == "Admin"
+    );
+}
+```
+
 ## Key Functionalities:
 
 ### For All Users (including anonymous):
@@ -70,6 +127,42 @@ This system handles all aspects of recipe creation, browsing, interaction, and i
 
 ## Supporting Models & Services:
 
+### Recipe Model
+```csharp
+[Table("recipes")]
+public class Recipe : BaseModel
+{
+    [PrimaryKey("id")]
+    public Guid Id { get; set; }
+
+    [Column("name")] public string Name { get; set; } = string.Empty;
+    [Column("description")] public string Description { get; set; } = string.Empty;
+    [Column("category")] public string Category { get; set; } = string.Empty;
+    [Column("difficulty")] public string Difficulty { get; set; } = string.Empty;
+
+    [Column("prep_time")] public int PrepTime { get; set; }
+    [Column("cook_time")] public int CookTime { get; set; }
+    [Column("servings")] public int Servings { get; set; }
+
+    [Column("ingredients")] public List<string> Ingredients { get; set; } = new();
+    [Column("instructions")] public List<string> Instructions { get; set; } = new();
+    [Column("tips")] public string? Tips { get; set; }
+    [Column("nutrition_info")] public string? NutritionInfo { get; set; }
+    [Column("dietary_options")] public List<string>? DietaryOptions { get; set; }
+    [Column("author")] public string Author { get; set; } = string.Empty;
+    [Column("submitted_at")] public DateTime SubmittedAt { get; set; }
+    [Column("status")] public string Status { get; set; } = string.Empty;
+
+    [Column("total_time", ignoreOnInsert: true, ignoreOnUpdate: true)]
+    [JsonIgnore]
+    public int? TotalTime { get; set; }
+    [Column("user_id")] public string? UserId { get; set; }
+    [Column("image_url")] public string? ImageUrl { get; set; }
+    [Column("is_draft")] public bool IsDraft { get; set; } = false;
+}
+```
+
+### Supporting Models
 *   `Recipe` (Model): Defines the structure of a recipe with fields for ingredients, instructions, timing, and metadata.
 *   `RecipeVariance` (Model): Stores recipe variations with different serving sizes and modified ingredients/instructions.
 *   `Rating` (Model): Stores user ratings for recipes (1-5 scale).

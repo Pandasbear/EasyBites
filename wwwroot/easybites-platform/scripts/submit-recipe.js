@@ -64,46 +64,40 @@
           }
       }
 
-      // Initial state check
       updateImageGenerationButtonState();
 
-      // Function to update the state of the image generation button
       function updateImageGenerationButtonState() {
           const nameFilled = recipeNameInput.value.trim() !== '';
           const descriptionFilled = recipeDescriptionTextarea.value.trim() !== '';
           const imageUrlPresent = recipeImageUrlInput.value.trim() !== '';
 
-          // Enable generate button only if name and description are filled AND no image is currently set
           const canGenerate = nameFilled && descriptionFilled && !imageUrlPresent;
           generateImageBtn.disabled = !canGenerate;
           if (canGenerate) {
-              generateImageBtn.classList.add('btn-highlight'); // Add class for orange highlight
+              generateImageBtn.classList.add('btn-highlight');
           } else {
-              generateImageBtn.classList.remove('btn-highlight'); // Remove class
+              generateImageBtn.classList.remove('btn-highlight');
           }
       }
 
-      // Function to handle manual image upload
       function handleManualImageUpload(event) {
           const file = event.target.files[0];
           if (file) {
               const reader = new FileReader();
               reader.onload = (e) => {
                   const imageUrl = e.target.result;
-                  recipeImageUrlInput.value = imageUrl; // Store data URL
+                  recipeImageUrlInput.value = imageUrl;
                   imagePreviewImg.src = imageUrl;
                   imagePreviewDiv.style.display = 'block';
                   EasyBites.toast('Image uploaded successfully!', 'success');
-                  updateImageGenerationButtonState(); // Update button state
+                  updateImageGenerationButtonState();
               };
               reader.readAsDataURL(file);
           } else {
-              // If user cancels file selection, treat as no image
               handleRemoveImage();
           }
       }
 
-      // Function to add an ingredient input field
       function addIngredientField(ingredientText = '') {
           const ingredientItems = ingredientsList.querySelectorAll('.ingredient-item');
           const newIngredientNumber = ingredientItems.length + 1;
@@ -116,8 +110,6 @@
           `;
           ingredientsList.appendChild(ingredientItem);
       }
-
-      // Function to add an instruction textarea
       function addInstructionField(instructionText = '') {
           const instructionItems = instructionsList.querySelectorAll('.instruction-item');
           const newStepNumber = instructionItems.length + 1;

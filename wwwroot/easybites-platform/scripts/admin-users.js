@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function initializeUserManagement() {
-    console.log('[Admin Users] Initializing user management...');
+
     setupEventListeners();
     loadUsers();
 }

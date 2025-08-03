@@ -2,6 +2,55 @@
 
 The authentication system manages user registration, login, sessions, and profile management.
 
+## Code Structure
+
+### Controller Setup
+```csharp
+[ApiController]
+[Route("api/[controller]")]
+public class AuthController : ControllerBase
+{
+    private readonly Supabase.Client _supabase;
+    private readonly ActivityLogService _activityLog;
+    private readonly SupabaseStorageService _supabaseStorageService;
+
+    public AuthController(Supabase.Client supabase, ActivityLogService activityLog, 
+                         SupabaseStorageService supabaseStorageService)
+    {
+        _supabase = supabase;
+        _activityLog = activityLog;
+        _supabaseStorageService = supabaseStorageService;
+    }
+}
+```
+
+### Password Hashing
+```csharp
+internal static string HashPassword(string password)
+{
+    using var sha = SHA256.Create();
+    var bytes = sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(password));
+    var hash = BitConverter.ToString(bytes).Replace("-", "").ToLowerInvariant();
+    return hash;
+}
+```
+
+### Session Management
+```csharp
+private static string GenerateSessionId() => Guid.NewGuid().ToString();
+
+private string GetClientIp()
+{
+    return Request.Headers["X-Forwarded-For"].FirstOrDefault() ?? 
+           Request.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+}
+
+public string GetUserAgent()
+{
+    return Request.Headers["User-Agent"].FirstOrDefault() ?? "unknown";
+}
+```
+
 ## Key Functionalities:
 
 *   **User Registration (`POST /api/auth/register`):**

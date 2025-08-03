@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function initializeFeedbackManagement() {
-    console.log('[Admin Feedback] Initializing feedback management...');
+
     setupEventListeners();
     loadFeedback();
 }

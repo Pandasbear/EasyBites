@@ -36,7 +36,6 @@ public class ActivityLogService
         catch (Exception ex)
         {
             // Log error but don't throw to avoid breaking main functionality
-            Console.WriteLine($"Failed to log activity: {ex.Message}");
         }
     }
 
@@ -53,7 +52,7 @@ public class ActivityLogService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Failed to get recent activities: {ex.Message}");
+
             return new List<ActivityLogDto>();
         }
     }
@@ -171,4 +170,4 @@ public class ActivityLogDto
     public string? IpAddress { get; set; }
     public string? UserAgent { get; set; }
     public DateTime CreatedAt { get; set; }
-} 
+}

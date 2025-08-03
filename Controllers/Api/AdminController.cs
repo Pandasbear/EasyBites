@@ -33,11 +33,11 @@ public class AdminController : ControllerBase
     {
         if (!Request.Cookies.TryGetValue("session_id", out var sessionId))
         {
-            Console.WriteLine("[GetCurrentUser - AdminController] No session cookie found.");
+
             return null;
         }
 
-        Console.WriteLine($"[GetCurrentUser - AdminController] Session ID found: {sessionId}");
+
 
         // Retrieve session from database
         var session = (await _supabase.From<AuthController.UserSession>()
@@ -47,20 +47,20 @@ public class AdminController : ControllerBase
 
         if (session == null)
         {
-            Console.WriteLine($"[GetCurrentUser - AdminController] Session {sessionId} not found in DB.");
+
             Response.Cookies.Delete("session_id");
             return null;
         }
 
         if (session.ExpiresAt < DateTime.UtcNow)
         {
-            Console.WriteLine($"[GetCurrentUser - AdminController] Session {sessionId} expired at {session.ExpiresAt}.");
+
             await _supabase.From<AuthController.UserSession>().Where(s => s.SessionId == sessionId).Delete();
             Response.Cookies.Delete("session_id");
             return null;
         }
 
-        Console.WriteLine($"[GetCurrentUser - AdminController] Session {sessionId} found in DB, UserId: {session.UserId}, IsAdmin: {session.IsAdmin}.");
+
 
         // Fetch the user details from the 'users' table
         var userResponse = await _supabase.From<AuthController.User>()
@@ -70,13 +70,13 @@ public class AdminController : ControllerBase
 
         if (user == null)
         {
-            Console.WriteLine($"[GetCurrentUser - AdminController] User not found in database for session {sessionId}. Deleting session.");
+
             await _supabase.From<AuthController.UserSession>().Where(s => s.SessionId == sessionId).Delete();
             Response.Cookies.Delete("session_id");
             return null;
         }
 
-        Console.WriteLine($"[GetCurrentUser - AdminController] User found: {user.Username}, DB IsAdmin: {user.IsAdmin}.");
+
 
         bool isAdminSession = session.IsAdmin; // Use isAdmin flag from the database session
 
@@ -123,10 +123,10 @@ public class AdminController : ControllerBase
         {
             if (!Request.Cookies.TryGetValue("session_id", out var sessionId))
             {
-                Console.WriteLine("[GetCurrentAdminUser - AdminController] No session cookie found.");
+    
                 return null;
             }
-            Console.WriteLine($"[GetCurrentAdminUser - AdminController] Session ID found: {sessionId}.");
+    
 
             // Retrieve session from database
             var session = (await _supabase.From<AuthController.UserSession>()
@@ -136,14 +136,14 @@ public class AdminController : ControllerBase
 
             if (session == null)
             {
-                Console.WriteLine($"[GetCurrentAdminUser - AdminController] Session {sessionId} not found in DB.");
+    
                 Response.Cookies.Delete("session_id");
                 return null;
             }
 
             if (session.ExpiresAt < DateTime.UtcNow)
             {
-                Console.WriteLine($"[GetCurrentAdminUser - AdminController] Session {sessionId} expired at {session.ExpiresAt}.");
+    
                 await _supabase.From<AuthController.UserSession>().Where(s => s.SessionId == sessionId).Delete();
                 Response.Cookies.Delete("session_id");
                 return null;
@@ -151,13 +151,13 @@ public class AdminController : ControllerBase
 
             if (!session.IsAdmin)
             {
-                Console.WriteLine($"[GetCurrentAdminUser - AdminController] Session {sessionId} is not marked as admin. Deleting session.");
+
                 await _supabase.From<AuthController.UserSession>().Where(s => s.SessionId == sessionId).Delete();
                 Response.Cookies.Delete("session_id");
                 return null;
             }
 
-            Console.WriteLine($"[GetCurrentAdminUser - AdminController] Session {sessionId} is an admin session, UserId: {session.UserId}.");
+
 
             // Fetch the user from Supabase to ensure they still have admin privileges
             var userResponse = await _supabase.From<AuthController.User>()
@@ -168,23 +168,23 @@ public class AdminController : ControllerBase
 
             if (user == null)
             {
-                Console.WriteLine($"[GetCurrentAdminUser - AdminController] User not found for session {sessionId}. Deleting session.");
+
                 await _supabase.From<AuthController.UserSession>().Where(s => s.SessionId == sessionId).Delete();
                 Response.Cookies.Delete("session_id");
                 return null;
             }
 
-            Console.WriteLine($"[GetCurrentAdminUser - AdminController] User {user.Username} found from DB, IsAdmin: {user.IsAdmin}.");
+
 
             // Ensure the user exists and their IsAdmin flag is true in the users table
             if (user.IsAdmin == true)
             {
-                Console.WriteLine($"[GetCurrentAdminUser - AdminController] User {user.Username} is confirmed as admin.");
+
                 return user;
             }
             else
             {
-                Console.WriteLine($"[GetCurrentAdminUser - AdminController] User {user.Username} is not an admin in the users table. Deleting session.");
+
                 await _supabase.From<AuthController.UserSession>().Where(s => s.SessionId == sessionId).Delete();
                 Response.Cookies.Delete("session_id");
                 return null;
@@ -192,7 +192,7 @@ public class AdminController : ControllerBase
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[GetCurrentAdminUser - AdminController] Error: {ex.Message}. Details: {ex}");
+
             return null;
         }
     }
@@ -242,7 +242,7 @@ public class AdminController : ControllerBase
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[GetDashboardStats] Error: {ex.Message}\nStack Trace: {ex.StackTrace}");
+
             return StatusCode(500, new { error = "Failed to get dashboard stats", details = ex.Message });
         }
     }
@@ -386,7 +386,7 @@ public class AdminController : ControllerBase
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[GetAllRecipes] Error: {ex.Message}\n{ex}");
+
             return StatusCode(500, new { error = "Failed to get recipes", details = ex.Message });
         }
     }
@@ -397,24 +397,24 @@ public class AdminController : ControllerBase
         // Check for session ID directly
         if (!Request.Cookies.TryGetValue("session_id", out var sessionId))
         {
-            Console.WriteLine("[GetRecipe] No session cookie found - unauthorized");
+
             return Unauthorized(new { message = "User not authenticated." });
         }
 
         var currentUser = await GetCurrentUser();
         if (currentUser == null || !currentUser.IsAdmin || !currentUser.IsAdminSession)
         {
-            Console.WriteLine("[GetRecipe] No admin user found or session not active - unauthorized");
+
             return Unauthorized(new { message = "Unauthorized access." });
         }
 
-        Console.WriteLine($"[GetRecipe] Called for ID: {id}");
+
 
         try
         {
             if (!Guid.TryParse(id, out Guid recipeGuid))
             {
-                Console.WriteLine($"[GetRecipe] Invalid GUID format for ID: {id}");
+    
                 return BadRequest(new { message = "Invalid recipe ID format." });
             }
 
@@ -424,12 +424,12 @@ public class AdminController : ControllerBase
 
             if (response == null)
             {
-                Console.WriteLine($"[GetRecipe] Recipe not found for ID: {id}");
+    
                 return NotFound(new { message = "Recipe not found." });
             }
 
             var recipe = response;
-            Console.WriteLine($"[GetRecipe] Found recipe: {recipe.Name}");
+    
             return Ok(new RecipeDto(
                 recipe.Id,
                 recipe.Name ?? string.Empty,
@@ -454,7 +454,7 @@ public class AdminController : ControllerBase
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[GetRecipe] Error fetching recipe: {ex.Message}\n{ex}");
+
             return StatusCode(500, new { message = "Failed to get recipe details", details = ex.Message });
         }
     }
@@ -462,23 +462,23 @@ public class AdminController : ControllerBase
     [HttpPut("recipes/{id}")]
     public async Task<IActionResult> UpdateRecipe(string id, [FromBody] UpdateRecipeRequest request)
     {
-        Console.WriteLine($"[UpdateRecipe] Called for ID: {id}");
+
 
         var admin = await GetCurrentAdminUser();
         if (admin == null)
         {
-            Console.WriteLine("[UpdateRecipe] No admin user found - unauthorized");
+
             return Unauthorized();
         }
 
         try
         {
-            Console.WriteLine($"[UpdateRecipe] Request object received: {System.Text.Json.JsonSerializer.Serialize(request)}");
+    
 
             // Ensure the ID is a properly formatted GUID string
             if (!Guid.TryParse(id, out var parsedGuid))
             {
-                Console.WriteLine($"[UpdateRecipe] Invalid GUID format for ID: {id}");
+    
                 return BadRequest(new { error = "Invalid recipe ID format" });
             }
             // var formattedId = parsedGuid.ToString(); // Convert Guid back to string
@@ -509,15 +509,15 @@ public class AdminController : ControllerBase
             
             var response = await updateQuery.Update();
 
-            Console.WriteLine($"[UpdateRecipe] Update response received. Models count: {response.Models.Count}");
+
 
             if (response.Models.Count == 0)
             {
-                Console.WriteLine($"[UpdateRecipe] No rows updated for ID: {id}");
+
                 return StatusCode(500, new { error = "Failed to update recipe: No rows updated" });
             }
 
-            Console.WriteLine($"[UpdateRecipe] Recipe {id} updated successfully.");
+
             await _activityLog.LogActivityAsync(admin.Id.ToString(), "recipe_updated", id, "recipe",
                 new { recipeName = request.Name, updatedBy = admin.Email },
                 GetClientIp(), GetUserAgent());
@@ -526,7 +526,7 @@ public class AdminController : ControllerBase
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[UpdateRecipe] Error updating recipe: {ex.Message}\n{ex}");
+
             return StatusCode(500, new { error = "Failed to update recipe", details = ex.Message });
         }
     }
@@ -569,7 +569,7 @@ public class AdminController : ControllerBase
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[GenerateRecipeImage] Error generating image for recipe {id}: {ex.Message}\nStack Trace: {ex.StackTrace}");
+
             return StatusCode(500, new { success = false, error = "Failed to generate image", details = ex.Message });
         }
     }
@@ -593,7 +593,7 @@ public class AdminController : ControllerBase
                 return BadRequest(new { error = "Invalid recipe ID format" });
             }
 
-            Console.WriteLine($"[UpdateRecipeImageUrl] Attempting to update recipe {id} with ImageUrl: {request.ImageUrl}");
+    
 
             await _supabase.From<Models.Recipe>()
                 .Filter("id", Supabase.Postgrest.Constants.Operator.Equals, id)
@@ -608,7 +608,7 @@ public class AdminController : ControllerBase
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[UpdateRecipeImageUrl] Error updating recipe image URL: {ex.Message}");
+
             return StatusCode(500, new { success = false, error = "Failed to update image URL", details = ex.Message });
         }
     }
@@ -668,9 +668,9 @@ public class AdminController : ControllerBase
                 await _supabase.From<UserRecipeProgress>()
                     .Filter("recipe_id", Supabase.Postgrest.Constants.Operator.Equals, id)
                     .Delete();
-                Console.WriteLine($"[DeleteRecipe] Deleted progress records for recipe {id}");
+
             } catch (Exception ex) {
-                Console.WriteLine($"[DeleteRecipe] Error deleting progress records: {ex.Message}");
+
                 return StatusCode(500, new { error = "Failed to delete recipe progress records", details = ex.Message });
             }
             
@@ -679,9 +679,9 @@ public class AdminController : ControllerBase
                 await _supabase.From<SavedRecipe>()
                     .Filter("recipe_id", Supabase.Postgrest.Constants.Operator.Equals, id)
                     .Delete();
-                Console.WriteLine($"[DeleteRecipe] Deleted saved references for recipe {id}");
+
             } catch (Exception ex) {
-                Console.WriteLine($"[DeleteRecipe] Error deleting saved references: {ex.Message}");
+
                 return StatusCode(500, new { error = "Failed to delete saved recipe references", details = ex.Message });
             }
             
@@ -699,7 +699,7 @@ public class AdminController : ControllerBase
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[DeleteRecipe] Error: {ex.Message}");
+
             return StatusCode(500, new { error = "Failed to delete recipe", details = ex.Message });
         }
     }
@@ -713,7 +713,7 @@ public class AdminController : ControllerBase
 
         try
         {
-            Console.WriteLine($"[CreateUser] Admin {admin.Email} creating user: {request.Email}");
+    
 
             // Validate input
             if (string.IsNullOrWhiteSpace(request.FirstName) || 
@@ -800,11 +800,11 @@ public class AdminController : ControllerBase
                 };
 
                 await _supabase.From<AuthController.UserProfile>().Insert(userProfile);
-                Console.WriteLine($"[CreateUser] Created user profile for user {newUser.Id}");
+
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[CreateUser] Warning: Failed to create user profile: {ex.Message}");
+
                 // Don't fail user creation if profile creation fails
             }
 
@@ -818,7 +818,7 @@ public class AdminController : ControllerBase
                 },
                 GetClientIp(), GetUserAgent());
 
-            Console.WriteLine($"[CreateUser] Successfully created user {newUser.Email} with ID {newUser.Id}");
+
 
             return Created($"/api/admin/users/{newUser.Id}", new
             {
@@ -834,7 +834,7 @@ public class AdminController : ControllerBase
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[CreateUser] Error: {ex.Message}\n{ex}");
+
             return StatusCode(500, new { error = "Failed to create user", details = ex.Message });
         }
     }
@@ -847,7 +847,7 @@ public class AdminController : ControllerBase
 
         try
         {
-            Console.WriteLine($"[GetAllUsers] Called with status='{status}', search='{search}', page={page}, limit={limit}");
+    
             
             // Get all users, then filter in memory to avoid Supabase query reassignment issues
             var allUsersResponse = await _supabase.From<AuthController.User>()
@@ -856,14 +856,14 @@ public class AdminController : ControllerBase
 
             var users = allUsersResponse.Models.ToList();
             
-            Console.WriteLine($"[GetAllUsers] Found {users.Count} total users");
+    
             
             // Apply status filter in memory if needed (convert status string to boolean)
             if (!string.IsNullOrEmpty(status))
             {
                 bool isActiveFilter = status.ToLower() == "active";
                 users = users.Where(u => u.Active == isActiveFilter).ToList();
-                Console.WriteLine($"[GetAllUsers] After status filter '{status}': {users.Count} users");
+    
             }
             
             // Apply search filter in memory if needed
@@ -877,7 +877,7 @@ public class AdminController : ControllerBase
                     (!string.IsNullOrEmpty(u.Username) && u.Username.ToLower().Contains(searchTerm)) ||
                     (u.Id.ToString().ToLower().Contains(searchTerm))
                 ).ToList();
-                Console.WriteLine($"[GetAllUsers] After search filter '{search}': {users.Count} users");
+
             }
             
             // Store total count before pagination for frontend
@@ -889,7 +889,7 @@ public class AdminController : ControllerBase
                 .Take(limit)
                 .ToList();
 
-            Console.WriteLine($"[GetAllUsers] After pagination: {users.Count} users");
+
 
             var userData = users.Select(u => new
             {
@@ -910,7 +910,7 @@ public class AdminController : ControllerBase
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[GetAllUsers] Error: {ex.Message}\n{ex}");
+
             return StatusCode(500, new { error = "Failed to get users", details = ex.Message });
         }
     }
@@ -941,7 +941,7 @@ public class AdminController : ControllerBase
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[GetUsername] Error fetching username: {ex.Message}\n{ex}");
+
             return StatusCode(500, new { error = "Failed to get username", details = ex.Message });
         }
     }
@@ -1055,7 +1055,7 @@ public class AdminController : ControllerBase
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[UpdateUserStatus] Error: {ex.Message}\n{ex}");
+
             return StatusCode(500, new { error = "Failed to update user status", details = ex.Message });
         }
     }
@@ -1064,66 +1064,49 @@ public class AdminController : ControllerBase
     [HttpGet("feedback")]
     public async Task<IActionResult> GetAllFeedback([FromQuery] string? status = null, [FromQuery] string? type = null, [FromQuery] string? rating = null, [FromQuery] int page = 1, [FromQuery] int limit = 20)
     {
-        Console.WriteLine($"[GetAllFeedback] Called with status='{status}', type='{type}', rating='{rating}', page={page}, limit={limit}");
+
         
         var admin = await GetCurrentAdminUser();
         if (admin == null) 
         {
-            Console.WriteLine("[GetAllFeedback] No admin user found - unauthorized");
+
             return Unauthorized();
         }
 
-        Console.WriteLine($"[GetAllFeedback] Admin user: {admin.Email}");
+
 
         try
         {
-            Console.WriteLine("[GetAllFeedback] Querying feedback table...");
+    
             
             // Get all feedback, then filter in memory to avoid Supabase query reassignment issues
             var allFeedbackResponse = await _supabase.From<Feedback>()
                 .Order("submitted_at", Supabase.Postgrest.Constants.Ordering.Descending)
                 .Get();
 
-            Console.WriteLine($"[GetAllFeedback] Found {allFeedbackResponse.Models.Count} total feedback records");
+
 
             var feedback = allFeedbackResponse.Models.ToList();
             
-            // Debug: Show unique type values in the database
-            var uniqueTypes = feedback.Select(f => f.Type).Distinct().ToList();
-            Console.WriteLine($"[GetAllFeedback] Unique types in database: [{string.Join(", ", uniqueTypes.Select(t => $"'{t}'"))}]");
+
             
             // Apply status filter in memory if needed
             if (!string.IsNullOrEmpty(status))
             {
                 feedback = feedback.Where(f => f.Status == status).ToList();
-                Console.WriteLine($"[GetAllFeedback] After status filter '{status}': {feedback.Count} records");
+
             }
             
             // Apply type filter in memory if needed
             if (!string.IsNullOrEmpty(type))
             {
-                Console.WriteLine($"[GetAllFeedback] Filtering by type: '{type}' (case insensitive)");
-                var beforeCount = feedback.Count;
                 feedback = feedback.Where(f => string.Equals(f.Type, type, StringComparison.OrdinalIgnoreCase)).ToList();
-                Console.WriteLine($"[GetAllFeedback] After type filter '{type}': {feedback.Count} records (was {beforeCount})");
-                
-                // Debug: Show what types were excluded
-                if (feedback.Count == 0 && beforeCount > 0)
-                {
-                    var actualTypes = allFeedbackResponse.Models.Select(f => f.Type).Distinct().ToList();
-                    Console.WriteLine($"[GetAllFeedback] No matches found. Available types: [{string.Join(", ", actualTypes.Select(t => $"'{t}'"))}]");
-                }
             }
             
             // Apply rating filter in memory if needed
             if (!string.IsNullOrEmpty(rating))
             {
-                Console.WriteLine($"[GetAllFeedback] Filtering by rating: '{rating}'");
-                var beforeCount = feedback.Count;
-                
-                // Debug: Show unique rating values in the database
-                var uniqueRatings = feedback.Select(f => f.Rating).Distinct().ToList();
-                Console.WriteLine($"[GetAllFeedback] Unique ratings in database: [{string.Join(", ", uniqueRatings.Select(r => r?.ToString() ?? "null"))}]");
+
                 
                 if (int.TryParse(rating, out var ratingValue))
                 {
@@ -1131,26 +1114,19 @@ public class AdminController : ControllerBase
                     {
                         // Filter for no rating (null or 0)
                         feedback = feedback.Where(f => f.Rating == null || f.Rating == 0).ToList();
-                        Console.WriteLine($"[GetAllFeedback] Filtering for no rating (null or 0)");
+
                     }
                     else
                     {
                         // Filter for specific rating value
                         feedback = feedback.Where(f => f.Rating == ratingValue).ToList();
-                        Console.WriteLine($"[GetAllFeedback] Filtering for rating = {ratingValue}");
+
                     }
-                    Console.WriteLine($"[GetAllFeedback] After rating filter '{rating}': {feedback.Count} records (was {beforeCount})");
-                    
-                    // Debug: Show what ratings were excluded
-                    if (feedback.Count == 0 && beforeCount > 0)
-                    {
-                        var actualRatings = allFeedbackResponse.Models.Select(f => f.Rating).Distinct().ToList();
-                        Console.WriteLine($"[GetAllFeedback] No matches found. Available ratings: [{string.Join(", ", actualRatings.Select(r => r?.ToString() ?? "null"))}]");
-                    }
+
                 }
                 else
                 {
-                    Console.WriteLine($"[GetAllFeedback] Failed to parse rating '{rating}' as integer");
+
                 }
             }
             
@@ -1160,7 +1136,7 @@ public class AdminController : ControllerBase
                 .Take(limit)
                 .ToList();
 
-            Console.WriteLine($"[GetAllFeedback] After pagination: {feedback.Count} records");
+
 
             var feedbackData = feedback.Select(f => new
             {
@@ -1176,12 +1152,12 @@ public class AdminController : ControllerBase
                 // reviewedAt = f.ReviewedAt // Commented out due to schema cache issue
             }).ToList();
 
-            Console.WriteLine($"[GetAllFeedback] Returning {feedbackData.Count} feedback records");
+
             return Ok(feedbackData);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[GetAllFeedback] Error: {ex.Message}\n{ex}");
+
             return StatusCode(500, new { error = "Failed to get feedback", details = ex.Message });
         }
     }
@@ -1225,27 +1201,27 @@ public class AdminController : ControllerBase
     [HttpGet("reports")]
     public async Task<IActionResult> GetAllReports([FromQuery] string? status = null, [FromQuery] string? type = null, [FromQuery] int page = 1, [FromQuery] int limit = 20)
     {
-        Console.WriteLine($"[GetAllReports] Called with status='{status}', type='{type}', page={page}, limit={limit}");
+        
         
         var admin = await GetCurrentAdminUser();
         if (admin == null) 
         {
-            Console.WriteLine("[GetAllReports] No admin user found - unauthorized");
+
             return Unauthorized();
         }
 
-        Console.WriteLine($"[GetAllReports] Admin user: {admin.Email}");
+        
 
         try
         {
-            Console.WriteLine("[GetAllReports] Querying reports table...");
+
             
             // Get all reports, then filter in memory to avoid Supabase query reassignment issues
             var allReportsResponse = await _supabase.From<Report>()
                 .Order("created_at", Supabase.Postgrest.Constants.Ordering.Descending)
                 .Get();
 
-            Console.WriteLine($"[GetAllReports] Found {allReportsResponse.Models.Count} total report records");
+
 
             var reports = allReportsResponse.Models.ToList();
             
@@ -1253,14 +1229,14 @@ public class AdminController : ControllerBase
             if (!string.IsNullOrEmpty(status))
             {
                 reports = reports.Where(r => r.Status == status).ToList();
-                Console.WriteLine($"[GetAllReports] After status filter '{status}': {reports.Count} records");
+
             }
             
             // Apply type filter in memory if needed
             if (!string.IsNullOrEmpty(type))
             {
                 reports = reports.Where(r => r.ReportType == type).ToList();
-                Console.WriteLine($"[GetAllReports] After type filter '{type}': {reports.Count} records");
+
             }
             
             // Apply pagination
@@ -1269,7 +1245,7 @@ public class AdminController : ControllerBase
                 .Take(limit)
                 .ToList();
 
-            Console.WriteLine($"[GetAllReports] After pagination: {reports.Count} records");
+
 
             var reportsData = reports.Select(r => new
             {
@@ -1285,12 +1261,12 @@ public class AdminController : ControllerBase
                 adminNotes = r.AdminNotes
             }).ToList();
 
-            Console.WriteLine($"[GetAllReports] Returning {reportsData.Count} report records");
+
             return Ok(reportsData);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[GetAllReports] Error: {ex.Message}\n{ex}");
+
             return StatusCode(500, new { error = "Failed to get reports", details = ex.Message });
         }
     }
@@ -1298,25 +1274,25 @@ public class AdminController : ControllerBase
     [HttpGet("reports/{id}")]
     public async Task<IActionResult> GetReport(string id)
     {
-        Console.WriteLine($"[GetReport] Called with id='{id}' (type: {id.GetType()})");
+        
         
         var admin = await GetCurrentAdminUser();
         if (admin == null) 
         {
-            Console.WriteLine("[GetReport] No admin user found - unauthorized");
+
             return Unauthorized();
         }
 
-        Console.WriteLine($"[GetReport] Admin user: {admin.Email}");
+        
 
         try
         {
-            Console.WriteLine("[GetReport] Querying single report...");
+
             
             // Try to parse as long (since Report.Id is long)
             if (!long.TryParse(id, out _))
             {
-                Console.WriteLine($"[GetReport] Invalid id format: '{id}' – not a number");
+
                 return BadRequest(new { error = "Invalid report ID format" });
             }
 
@@ -1328,11 +1304,11 @@ public class AdminController : ControllerBase
             
             if (report == null)
             {
-                Console.WriteLine($"[GetReport] Report not found with id: {id} (long: {id})");
+
                 return NotFound(new { error = "Report not found", requestedId = id });
             }
 
-            Console.WriteLine($"[GetReport] Found report: {report.Id}");
+
 
             var reportData = new
             {
@@ -1349,12 +1325,12 @@ public class AdminController : ControllerBase
                 reviewedByAdminId = report.ReviewedByAdminId
             };
 
-            Console.WriteLine($"[GetReport] Returning report data for id: {id}");
+
             return Ok(reportData);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[GetReport] Error: {ex.Message}\n{ex}");
+
             return StatusCode(500, new { error = "Failed to get report", details = ex.Message });
         }
     }
@@ -1391,8 +1367,7 @@ public class AdminController : ControllerBase
                 ? table.Filter("id", Supabase.Postgrest.Constants.Operator.Equals, intId)
                 : table.Filter("id", Supabase.Postgrest.Constants.Operator.Equals, id); 
 
-            Console.WriteLine($"[UpdateReport] Received Status: '{request.Status}' (Type: {request.Status.GetType().Name})");
-            Console.WriteLine($"[UpdateReport] Received AdminNotes: '{request.AdminNotes}' (Type: {request.AdminNotes?.GetType().Name ?? "null"})");
+
 
             // Apply the updates
             await updateQuery

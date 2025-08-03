@@ -52,17 +52,17 @@ public class ReportsController : ControllerBase
     {
         try
         {
-            Console.WriteLine("[SubmitReport] Starting report submission");
+
             
             // Get current user ID from claims
             var currentUserId = GetAuthenticatedUserIdFromClaims();
             if (currentUserId == null)
             {
-                Console.WriteLine("[SubmitReport] User not authenticated");
+
                 return Unauthorized(new { error = "User not authenticated" });
             }
 
-            Console.WriteLine($"[SubmitReport] Current user ID: {currentUserId}");
+
 
             // Validate request
             if (string.IsNullOrEmpty(request.ReportType) || string.IsNullOrEmpty(request.Description))
@@ -103,18 +103,17 @@ public class ReportsController : ControllerBase
                 CreatedAt = DateTime.UtcNow
             };
             
-            Console.WriteLine($"[SubmitReport] Creating report for user: {currentUserId.Value}");
+
             
             // Insert into database using Supabase ORM
             var response = await _supabaseClient.From<Report>().Insert(report);
             
-            Console.WriteLine($"[SubmitReport] Report created successfully");
+
             return Ok(new { success = true, message = "Report submitted successfully", reportId = report.Id });
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[SubmitReport] Error: {ex.Message}");
-            Console.WriteLine($"[SubmitReport] Stack trace: {ex.StackTrace}");
+
             
             // Handle specific database constraint violations
             if (ex.Message.Contains("foreign key constraint") || ex.Message.Contains("violates foreign key"))

@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function initializeRecipeManagement() {
-    console.log('[Admin Recipes] Initializing recipe management...');
+
     
     // Set up event listeners
     setupEventListeners();

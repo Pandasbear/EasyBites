@@ -1,49 +1,45 @@
 // Admin Dashboard Security and Functionality
 document.addEventListener('DOMContentLoaded', async function() {
-    console.log('[Admin] Checking admin access...');
+
     
     try {
         // Check if user is authenticated and has admin access
         const response = await fetch('/api/auth/me');
         
         if (!response.ok) {
-            console.log('[Admin] User not authenticated, redirecting to admin login');
+
             redirectToAdminLogin();
             return;
         }
         
         const user = await response.json();
-        console.log('[Admin] User data:', user);
+
         
         // Check if user is admin AND has an admin session
         if (!user.isAdmin || !user.isAdminSession) {
-            console.log(`[Admin] Access denied. isAdmin: ${user.isAdmin}, isAdminSession: ${user.isAdminSession}`);
+
             redirectToAdminLogin('You must log in through the admin portal to access this area.');
             return;
         }
         
-        console.log('[Admin] Access granted for admin user');
+
         
         // Update admin user display
         updateAdminUserDisplay(user);
         
-        // Set up logout functionality
         setupAdminLogout();
         
-        // Initialize dashboard data if we're on the dashboard page
         if (window.location.pathname.includes('admin-dashboard.html')) {
             await initializeDashboard();
         }
         
     } catch (error) {
-        console.error('[Admin] Error checking admin access:', error);
         redirectToAdminLogin('Error verifying admin access. Please log in again.');
     }
 });
 
 function redirectToAdminLogin(message = null) {
     if (message) {
-        // Store message to show after redirect
         sessionStorage.setItem('adminLoginMessage', message);
     }
     window.location.href = 'admin-login.html';
@@ -71,11 +67,9 @@ function setupAdminLogout() {
                 });
                 
                 if (response.ok) {
-                    console.log('[Admin] Logout successful');
                     sessionStorage.setItem('adminLoginMessage', 'You have been logged out successfully.');
                     window.location.href = 'admin-login.html';
                 } else {
-                    console.error('[Admin] Logout failed');
                     EasyBites.toast('Logout failed. Please try again.', 'error'); 
                 }
             } catch (error) {
@@ -109,61 +103,45 @@ async function loadDashboardStats() {
         console.log('[Admin] Loading dashboard statistics...');
         const stats = await EasyBites.api('/api/admin/dashboard/stats');
         
-        // Update the dashboard stats display
         updateDashboardStats(stats);
         
     } catch (error) {
-        console.error('[Admin] Error loading dashboard stats:', error);
         showAdminNotification('Failed to load dashboard statistics', 'error');
     }
 }
 
 async function loadPopularCategories() {
     try {
-        console.log('[Admin] Loading popular categories...');
         const categories = await EasyBites.api('/api/admin/dashboard/popular-categories');
-        
-        // Update the popular categories display
         updatePopularCategories(categories);
         
     } catch (error) {
-        console.error('[Admin] Error loading popular categories:', error);
         showAdminNotification('Failed to load popular categories', 'error');
     }
 }
 
 async function loadRecentActivity() {
     try {
-        console.log('[Admin] Loading recent activity...');
         const activities = await EasyBites.api('/api/admin/dashboard/activities');
-        
-        // Update the recent activity display
         await updateRecentActivity(activities);
         
     } catch (error) {
-        console.error('[Admin] Error loading recent activity:', error);
         showAdminNotification('Failed to load recent activities', 'error');
     }
 }
 
 async function loadPendingActions() {
     try {
-        console.log('[Admin] Loading pending actions...');
         const pendingData = await EasyBites.api('/api/admin/dashboard/pending-actions');
-        
-        // Update the pending actions display
         updatePendingActions(pendingData);
         
     } catch (error) {
-        console.error('[Admin] Error loading pending actions:', error);
         showAdminNotification('Failed to load pending actions', 'error');
     }
 }
 
-// Functions to update the dashboard UI with real data
 function updateDashboardStats(stats) {
     try {
-        // Update total users
         const totalUsersEl = document.getElementById('totalUsers');
         if (totalUsersEl) {
             totalUsersEl.textContent = stats.totalUsers.toLocaleString();
@@ -558,4 +536,4 @@ const adminNotificationStyles = `
 // Inject CSS
 const styleSheet = document.createElement('style');
 styleSheet.textContent = adminNotificationStyles;
-document.head.appendChild(styleSheet); 
+document.head.appendChild(styleSheet);

@@ -2,6 +2,66 @@
 
 The Admin Panel provides administrators with tools to manage the Easy Bites platform, including users, recipes, feedback, and reports. Access to these functionalities is restricted to authenticated admin users.
 
+## Code Structure
+
+### Controller Setup
+```csharp
+[ApiController]
+[Route("api/[controller]")]
+public class AdminController : ControllerBase
+{
+    private readonly Supabase.Client _supabase;
+    private readonly ActivityLogService _activityLog;
+    private readonly RecipeImageService _recipeImageService;
+
+    public AdminController(Supabase.Client supabase, ActivityLogService activityLog, 
+                          RecipeImageService recipeImageService)
+    {
+        _supabase = supabase;
+        _activityLog = activityLog;
+        _recipeImageService = recipeImageService;
+    }
+}
+```
+
+### Admin Authentication Helper
+```csharp
+private async Task<UserDto?> GetCurrentUser()
+{
+    if (!Request.Cookies.TryGetValue("session_id", out var sessionId))
+    {
+        Console.WriteLine("[GetCurrentUser - AdminController] No session cookie found.");
+        return null;
+    }
+
+    // Retrieve session from database
+    var session = (await _supabase.From<AuthController.UserSession>()
+                                .Where(s => s.SessionId == sessionId)
+                                .Limit(1)
+                                .Get()).Models.FirstOrDefault();
+
+    if (session == null)
+    {
+        Console.WriteLine($"[GetCurrentUser - AdminController] Session {sessionId} not found in DB.");
+        return null;
+    }
+
+    // Verify session hasn't expired and is admin session
+    if (session.ExpiresAt <= DateTime.UtcNow || !session.IsAdmin)
+    {
+        return null;
+    }
+
+    // Get user details
+    var user = (await _supabase.From<User>()
+                              .Where(u => u.Id == session.UserId)
+                              .Limit(1)
+                              .Get()).Models.FirstOrDefault();
+
+    return user != null && user.IsAdmin ? new UserDto { /* user properties */ } : null;
+}
+```
+
 ## Key Admin Functionalities:
 
 ### Dashboard:

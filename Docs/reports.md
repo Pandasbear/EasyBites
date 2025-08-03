@@ -2,6 +2,55 @@
 
 The reports system allows users to report inappropriate content or users, and provides administrators with tools to manage and respond to these reports.
 
+## Code Structure
+
+### Controller Setup
+```csharp
+[ApiController]
+[Route("api/[controller]")]
+public class ReportsController : ControllerBase
+{
+    private readonly Client _supabaseClient;
+    private readonly ActivityLogService _activityLogService;
+    private readonly ILogger<ReportsController> _logger;
+
+    public ReportsController(Client supabaseClient, ActivityLogService activityLogService, 
+                           ILogger<ReportsController> logger)
+    {
+        _supabaseClient = supabaseClient;
+        _activityLogService = activityLogService;
+        _logger = logger;
+    }
+}
+```
+
+### User Authentication Helper
+```csharp
+private Guid? GetAuthenticatedUserIdFromClaims()
+{
+    try
+    {
+        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdClaim))
+        {
+            return null;
+        }
+
+        if (Guid.TryParse(userIdClaim, out var userId))
+        {
+            return userId;
+        }
+
+        return null;
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Error getting current user ID from claims");
+        return null;
+    }
+}
+```
+
 ## User-Facing Functionalities (`ReportsController.cs`):
 
 *   **Submit Report (`POST /api/reports/submit`):**

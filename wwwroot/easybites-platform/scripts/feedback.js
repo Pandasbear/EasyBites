@@ -1,4 +1,3 @@
-// feedback.js - Handles the feedback form submission and star rating functionality
 document.addEventListener('DOMContentLoaded', function() {
     initializeFeedback();
 });
@@ -8,7 +7,6 @@ function initializeFeedback() {
     setupFormSubmission();
 }
 
-// Initialize star rating functionality
 function setupStarRating() {
     const stars = document.querySelectorAll('.star-rating .star');
     const ratingText = document.querySelector('.rating-text');
@@ -19,7 +17,6 @@ function setupStarRating() {
             const rating = parseInt(this.getAttribute('data-rating'));
             selectedRating = rating;
             
-            // Update visual state
             stars.forEach(s => {
                 const starRating = parseInt(s.getAttribute('data-rating'));
                 if (starRating <= rating) {
@@ -29,11 +26,9 @@ function setupStarRating() {
                 }
             });
             
-            // Update rating text
             ratingText.textContent = `${rating} star${rating > 1 ? 's' : ''}`;
         });
         
-        // Hover effects
         star.addEventListener('mouseenter', function() {
             const rating = parseInt(this.getAttribute('data-rating'));
             
@@ -209,4 +204,4 @@ function showSuccessMessage() {
     
     // Scroll to top of form section
     formSection.scrollIntoView({ behavior: 'smooth' });
-} 
+}

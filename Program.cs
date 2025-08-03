@@ -52,7 +52,7 @@ builder.Services.AddSingleton(provider =>
         url = $"https://{url}";
     }
     
-    Console.WriteLine($"Initializing Supabase client with URL: {url}");
+
     var options = new SupabaseOptions { AutoConnectRealtime = true };
     
     // Use service role key for better permissions when available
